@@ -5,6 +5,7 @@ import {
   DEFAULT_TIER,
   FUEL_EFFICIENCY_GAIN_MAP,
   DEFAULT_EFFICIENCY_GAIN_PCT,
+  getRegionalAdjustment,
   normalizeCategory,
   normalizeFuelSource,
 } from "@/data/roadmapConfig";
@@ -77,6 +78,40 @@ export function calculatePotentialEcoScore(
  * minimize total spend (a true cost-minimizing stack is a knapsack problem) —
  * documented tradeoff, fine for the suggestion-set sizes this app deals with.
  */
+export function getPaybackMonths(suggestion: Suggestion): number | null {
+  const effectivePrice = Math.max(1, suggestion.priceUSD - suggestion.appliedIncentives.reduce((sum, incentive) => sum + incentive.rebateValueUSD, 0));
+  const monthlySavings = suggestion.estimatedMonthlySavingsUSD;
+  if (monthlySavings <= 0) return null;
+  return Math.max(1, Math.round(effectivePrice / monthlySavings));
+}
+
+export function getPersonalizedNextAction(
+  suggestions: Suggestion[],
+  profile: UserProfile,
+  targetBillUSD?: number
+): Suggestion | null {
+  const remainingBudget = profile.maxBudgetUSD > 0 ? profile.maxBudgetUSD : Number.POSITIVE_INFINITY;
+  const active = suggestions.filter((suggestion) => !suggestion.applied && !suggestion.rejected);
+  const ranked = active
+    .filter((suggestion) => suggestion.priceUSD <= remainingBudget)
+    .map((suggestion) => {
+      const payback = getPaybackMonths(suggestion) ?? Number.POSITIVE_INFINITY;
+      const targetGap = targetBillUSD && targetBillUSD > 0 ? Math.max(0, targetBillUSD - 0) : 0;
+      let score = suggestion.estimatedMonthlySavingsUSD * 10;
+      score += suggestion.conversionEfficiencyPct / 2;
+      score -= payback * 0.8;
+      if (profile.preference === "budget") score -= suggestion.priceUSD / 250;
+      if (profile.preference === "impact") score += suggestion.conversionEfficiencyPct / 4;
+      if (profile.preference === "speed") score += 20 / Math.max(1, payback);
+      if (profile.preference === "savings") score += suggestion.estimatedMonthlySavingsUSD / 4;
+      if (targetGap > 0) score += Math.min(20, targetGap / 25);
+      return { suggestion, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  return ranked[0]?.suggestion ?? null;
+}
+
 export function simulateTargetBill(
   currentBillUSD: number,
   targetBillUSD: number,
@@ -96,11 +131,19 @@ export function simulateTargetBill(
 
   const candidates = [...activeSuggestions]
     .filter((s) => s.estimatedMonthlySavingsUSD > 0)
-    .sort((a, b) => b.estimatedMonthlySavingsUSD - a.estimatedMonthlySavingsUSD);
+    .map((suggestion) => {
+      const paybackMonths = suggestion.priceUSD / Math.max(1, suggestion.estimatedMonthlySavingsUSD);
+      const score =
+        (suggestion.estimatedMonthlySavingsUSD * 10) / Math.max(1, paybackMonths) +
+        (suggestion.conversionEfficiencyPct / 100) * 8 +
+        (suggestion.appliedIncentives.length > 0 ? 4 : 0);
+      return { suggestion, score };
+    })
+    .sort((a, b) => b.score - a.score);
 
   const stack: Suggestion[] = [];
   let achieved = 0;
-  for (const suggestion of candidates) {
+  for (const { suggestion } of candidates) {
     if (achieved >= requiredMonthlySavingsUSD) break;
     stack.push(suggestion);
     achieved += suggestion.estimatedMonthlySavingsUSD;
@@ -131,8 +174,23 @@ export function auditResultToSuggestion(
   const fuelSource = normalizeFuelSource(audit.fuelSource);
   const tier = CATEGORY_TIER_MAP[category] ?? DEFAULT_TIER;
   const priceUSD = CATEGORY_PRICE_MAP[category] ?? DEFAULT_PRICE_USD;
-  const conversionEfficiencyPct =
+  const regionalAdjustment = getRegionalAdjustment(profile.zipCode, category);
+  const baseEfficiencyPct =
     FUEL_EFFICIENCY_GAIN_MAP[fuelSource] ?? DEFAULT_EFFICIENCY_GAIN_PCT;
+  const conversionEfficiencyPct = clamp(
+    Math.round(baseEfficiencyPct * regionalAdjustment.efficiencyMultiplier),
+    0,
+    100
+  );
+  const estimatedMonthlySavingsUSD = Math.max(
+    0,
+    Math.round(audit.estimatedMonthlySavingsUSD * regionalAdjustment.savingsMultiplier)
+  );
+  const confidenceScore = clamp(
+    Number((audit.confidenceScore * regionalAdjustment.confidenceMultiplier).toFixed(2)),
+    0,
+    1
+  );
 
   const base: Suggestion = {
     id: generateId(),
@@ -141,7 +199,7 @@ export function auditResultToSuggestion(
     title: `Upgrade your ${audit.detectedCategory} (${audit.fuelSource}) to a high-efficiency electric alternative`,
     fuelSource: audit.fuelSource,
     priceUSD,
-    estimatedMonthlySavingsUSD: Math.max(0, audit.estimatedMonthlySavingsUSD),
+    estimatedMonthlySavingsUSD,
     conversionEfficiencyPct,
     rejected: false,
     applied: false,
@@ -149,6 +207,8 @@ export function auditResultToSuggestion(
     source,
     sourceAuditId,
     createdAt: new Date().toISOString(),
+    confidenceScore,
+    reason: `Good fit for ${regionalAdjustment.label} conditions and ${fuelSource} systems.`,
   };
 
   return withAppliedIncentives(base, profile.zipCode);

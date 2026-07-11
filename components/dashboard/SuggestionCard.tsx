@@ -77,6 +77,12 @@ export function SuggestionCard({ suggestion, onReject, onToggleApplied }: Sugges
         </ul>
       ) : null}
 
+      {suggestion.reason ? (
+        <div className="rounded-lg border border-brand-250/40 bg-brand-50/70 px-3 py-2 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-950/35 dark:text-brand-150">
+          {suggestion.reason}
+        </div>
+      ) : null}
+
       <div className="mt-1 flex items-center justify-between gap-2 border-t border-black/5 pt-3 dark:border-white/10">
         <span className="text-xs text-black/40 dark:text-white/40">
           {suggestion.fuelSource} → Electric

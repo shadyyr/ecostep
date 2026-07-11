@@ -24,4 +24,32 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 2500,
     type: "Bill Discount Lease Offset",
   },
+  {
+    zipCodePrefix: "981",
+    targetCategory: "Water Heater",
+    incentiveName: "Seattle Heat Pump Water Heater Upgrade Rebate",
+    rebateValueUSD: 400,
+    type: "Rebate",
+  },
+  {
+    zipCodePrefix: "ANY",
+    targetCategory: "Thermostat",
+    incentiveName: "Home Energy Audit Rebate",
+    rebateValueUSD: 100,
+    type: "Rebate",
+  },
+  {
+    zipCodePrefix: "941",
+    targetCategory: "Furnace",
+    incentiveName: "Bay Area Electrification Bonus",
+    rebateValueUSD: 600,
+    type: "Rebate",
+  },
+  {
+    zipCodePrefix: "100",
+    targetCategory: "Range",
+    incentiveName: "NYC Induction Range Incentive",
+    rebateValueUSD: 500,
+    type: "Rebate",
+  },
 ];

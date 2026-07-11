@@ -1,6 +1,11 @@
+export type RecommendationPreference = "savings" | "budget" | "impact" | "speed";
+
 export interface UserProfile {
   zipCode: string;
   hasSolar: boolean;
+  preference: RecommendationPreference;
+  maxBudgetUSD: number;
+  targetBillUSD?: number;
 }
 
 export type Tier = 1 | 2 | 3;
@@ -26,6 +31,8 @@ export interface Suggestion {
   source: "gemini" | "manual" | "mock";
   sourceAuditId?: string;
   createdAt: string;
+  confidenceScore?: number;
+  reason?: string;
 }
 
 export interface AuditResult {

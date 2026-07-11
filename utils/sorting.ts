@@ -1,20 +1,29 @@
-import type { SortMode, Suggestion, Tier } from "@/types";
+import type { RecommendationPreference, SortMode, Suggestion, Tier, UserProfile } from "@/types";
 import { getEffectivePrice } from "@/utils/incentives";
 
 export type SortFn = (suggestions: Suggestion[]) => Suggestion[];
 
 const TIER_BOOST: Record<Tier, number> = { 1: 1.15, 2: 1.0, 3: 0.9 };
 
-function recommendedScore(suggestion: Suggestion): number {
+function recommendedScore(suggestion: Suggestion, preference: RecommendationPreference): number {
   const price = getEffectivePrice(suggestion);
   const annualSavings = suggestion.estimatedMonthlySavingsUSD * 12;
   const roi = price <= 0 ? annualSavings : annualSavings / price;
   const efficiency = suggestion.conversionEfficiencyPct / 100;
-  return (roi * 0.6 + efficiency * 0.4) * TIER_BOOST[suggestion.tier];
+  const savingsWeight = preference === "savings" ? 1 : preference === "budget" ? 0.5 : 0.8;
+  const budgetWeight = preference === "budget" ? 1 : 0.4;
+  const impactWeight = preference === "impact" ? 1 : 0.3;
+  const speedWeight = preference === "speed" ? 1 : 0.25;
+
+  return (
+    (roi * speedWeight + efficiency * impactWeight + (annualSavings / 1000) * savingsWeight) *
+      TIER_BOOST[suggestion.tier] +
+    (price <= 0 ? 0 : (1 / Math.max(1, price)) * budgetWeight * 100)
+  );
 }
 
 export const sortRecommended: SortFn = (list) =>
-  [...list].sort((a, b) => recommendedScore(b) - recommendedScore(a));
+  [...list].sort((a, b) => recommendedScore(b, "savings") - recommendedScore(a, "savings"));
 
 export const sortPriceLowHigh: SortFn = (list) =>
   [...list].sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
@@ -41,4 +50,15 @@ export const SORT_MODE_LABELS: Record<SortMode, string> = {
 
 export function sortSuggestions(list: Suggestion[], mode: SortMode): Suggestion[] {
   return SORTERS[mode](list);
+}
+
+export function sortSuggestionsForProfile(
+  list: Suggestion[],
+  profile: UserProfile,
+  mode: SortMode = "recommended"
+): Suggestion[] {
+  if (mode !== "recommended") return sortSuggestions(list, mode);
+  return [...list]
+    .filter((suggestion) => suggestion.priceUSD <= profile.maxBudgetUSD || profile.maxBudgetUSD <= 0)
+    .sort((a, b) => recommendedScore(b, profile.preference) - recommendedScore(a, profile.preference));
 }

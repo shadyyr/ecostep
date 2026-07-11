@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useAppState } from "@/context/AppStateContext";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import type { RecommendationPreference } from "@/types";
 
 const ZIP_PATTERN = /^\d{5}$/;
 
@@ -11,6 +12,8 @@ export function OnboardingForm() {
   const { setProfile } = useAppState();
   const [zipCode, setZipCode] = useState("");
   const [hasSolar, setHasSolar] = useState(false);
+  const [preference, setPreference] = useState<RecommendationPreference>("savings");
+  const [maxBudgetUSD, setMaxBudgetUSD] = useState(5000);
   const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(e: FormEvent) {
@@ -20,7 +23,7 @@ export function OnboardingForm() {
       return;
     }
     setError(null);
-    setProfile({ zipCode, hasSolar });
+    setProfile({ zipCode, hasSolar, preference, maxBudgetUSD });
   }
 
   return (
@@ -71,6 +74,31 @@ export function OnboardingForm() {
                 electrification instead of power generation.
               </span>
             </span>
+          </label>
+
+          <div className="rounded-lg border border-black/10 p-3.5 dark:border-white/15">
+            <label className="mb-2 block text-sm font-medium">What matters most?</label>
+            <select
+              value={preference}
+              onChange={(e) => setPreference(e.target.value as RecommendationPreference)}
+              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
+            >
+              <option value="savings">Highest savings</option>
+              <option value="budget">Lowest upfront cost</option>
+              <option value="impact">Biggest carbon impact</option>
+              <option value="speed">Fastest payoff</option>
+            </select>
+          </div>
+
+          <label className="flex flex-col gap-1 text-sm">
+            Max budget for upgrades
+            <input
+              type="number"
+              min={0}
+              value={maxBudgetUSD}
+              onChange={(e) => setMaxBudgetUSD(Number(e.target.value) || 0)}
+              className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
+            />
           </label>
 
           <Button type="submit" className="w-full">
