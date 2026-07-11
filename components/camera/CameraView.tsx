@@ -201,11 +201,11 @@ export function CameraView({ onClose }: CameraViewProps) {
             </button>
             
             {showDebugInfo ? (
-              <div className="mt-3 text-xs font-mono bg-black/5 dark:bg-white/5 p-3 rounded text-black/70 dark:text-white/70 overflow-auto max-h-40">
-                <div className="mb-2">
-                  <strong>Error Code:</strong> {lastError.reason}
+              <div className="mt-3 text-xs font-mono bg-black/5 dark:bg-white/5 p-3 rounded text-black/70 dark:text-white/70 overflow-auto max-h-48 space-y-2 break-words">
+                <div>
+                  <strong>Error:</strong> {lastError.reason}
                 </div>
-                <div className="mb-2">
+                <div>
                   <strong>Why:</strong> {lastError.technicalDetails}
                 </div>
                 <div>
@@ -219,7 +219,7 @@ export function CameraView({ onClose }: CameraViewProps) {
             <Button onClick={retakeData} className="w-full">
               Retake Data Photo
             </Button>
-            <Button variant="secondary" onClick={retakeBoth}>
+            <Button variant="secondary" onClick={retakeBoth} className="w-full">
               Retake Both Photos
             </Button>
             <Button variant="ghost" onClick={() => setStep("manual")} className="w-full">
@@ -232,31 +232,31 @@ export function CameraView({ onClose }: CameraViewProps) {
       {step === "success" && lastResult ? (
         <div className="flex flex-col gap-4">
           <StatusBadge tone="good">Got it — here&apos;s what we found</StatusBadge>
-          <dl className="grid grid-cols-2 gap-3 rounded-xl bg-brand-100/60 p-4 text-sm dark:bg-white/5">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 rounded-xl bg-brand-100/60 p-4 text-sm dark:bg-white/5">
             <div>
-              <dt className="text-xs text-black/50 dark:text-white/50">Category</dt>
+              <dt className="text-xs text-black/50 dark:text-white/50 mb-1">Category</dt>
               <dd className="font-medium">{lastResult.detectedCategory}</dd>
             </div>
             <div>
-              <dt className="text-xs text-black/50 dark:text-white/50">Fuel source</dt>
+              <dt className="text-xs text-black/50 dark:text-white/50 mb-1">Fuel source</dt>
               <dd className="font-medium">{lastResult.fuelSource}</dd>
             </div>
             <div>
-              <dt className="text-xs text-black/50 dark:text-white/50">Brand</dt>
+              <dt className="text-xs text-black/50 dark:text-white/50 mb-1">Brand</dt>
               <dd className="font-medium">{lastResult.brand || "Not Found"}</dd>
             </div>
             <div>
-              <dt className="text-xs text-black/50 dark:text-white/50">Est. monthly savings</dt>
+              <dt className="text-xs text-black/50 dark:text-white/50 mb-1">Est. monthly savings</dt>
               <dd className="font-medium text-status-good">
                 ${lastResult.estimatedMonthlySavingsUSD}/mo
               </dd>
             </div>
           </dl>
-          <div className="flex gap-2">
-            <Button onClick={() => confirmAndAdd(lastResult, "gemini")} className="flex-1">
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => confirmAndAdd(lastResult, "gemini")} className="w-full">
               Add to Roadmap
             </Button>
-            <Button variant="secondary" onClick={retakeBoth}>
+            <Button variant="secondary" onClick={retakeBoth} className="w-full">
               Scan Another
             </Button>
           </div>

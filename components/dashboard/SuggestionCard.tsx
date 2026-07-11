@@ -108,7 +108,7 @@ export function SuggestionCard({ suggestion, onReject, onToggleApplied }: Sugges
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
             <div>
               <div className="text-xs text-black/50 dark:text-white/50 mb-1">Monthly savings</div>
               <div className="text-lg font-semibold text-status-good">
@@ -137,15 +137,15 @@ export function SuggestionCard({ suggestion, onReject, onToggleApplied }: Sugges
 
           {suggestion.appliedIncentives.length > 0 ? (
             <div>
-              <h4 className="text-sm font-semibold mb-2">Applied incentives</h4>
+              <h4 className="text-sm font-semibold mb-3">Applied incentives</h4>
               <ul className="flex flex-col gap-2 text-sm text-black/60 dark:text-white/60">
                 {suggestion.appliedIncentives.map((incentive) => (
                   <li
                     key={incentive.incentiveName}
-                    className="flex items-center justify-between rounded-lg bg-black/2 p-2 dark:bg-white/2"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg bg-black/2 p-3 dark:bg-white/2 gap-2"
                   >
-                    <span>{incentive.incentiveName}</span>
-                    <span className="font-medium text-status-good">
+                    <span className="flex-1 break-words">{incentive.incentiveName}</span>
+                    <span className="font-medium text-status-good whitespace-nowrap">
                       {currency.format(incentive.rebateValueUSD)}
                     </span>
                   </li>
