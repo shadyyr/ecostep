@@ -28,9 +28,14 @@ function AnimatedScore({ value }: { value: number }) {
 interface EcoScoreDisplayProps {
   breakdown: EcoScoreBreakdown;
   potentialScore: number;
+  maxPotentialReached?: boolean;
 }
 
-export function EcoScoreDisplay({ breakdown, potentialScore }: EcoScoreDisplayProps) {
+export function EcoScoreDisplay({
+  breakdown,
+  potentialScore,
+  maxPotentialReached = false,
+}: EcoScoreDisplayProps) {
   const { score, gridBaseline, solarBoost, appliedScore } = breakdown;
   const possibleGain = Math.max(0, potentialScore - score);
 
@@ -80,6 +85,10 @@ export function EcoScoreDisplay({ breakdown, potentialScore }: EcoScoreDisplayPr
             <span className="mt-1 text-xs font-medium text-status-good">
               +{possibleGain} possible
             </span>
+          ) : maxPotentialReached ? (
+            <span className="mt-1 text-xs font-medium text-status-good">
+              +0 possible
+            </span>
           ) : null}
         </div>
       </div>
@@ -98,6 +107,15 @@ export function EcoScoreDisplay({ breakdown, potentialScore }: EcoScoreDisplayPr
           <dd className="text-lg font-medium tabular-nums">{Math.round(appliedScore)}</dd>
         </div>
       </dl>
+
+      {maxPotentialReached ? (
+        <div className="w-full rounded-xl border border-status-good/20 bg-status-good/10 px-4 py-3 text-sm text-status-good sm:w-auto sm:max-w-xs">
+          <p className="font-semibold">Maximum EcoScore reached.</p>
+          <p className="mt-1 text-xs text-black/60 dark:text-white/70">
+            Great job being eco-friendly. You have accepted every active upgrade EcoStep can currently score.
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }
