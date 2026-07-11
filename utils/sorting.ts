@@ -1,20 +1,56 @@
-import type { SortMode, Suggestion, Tier } from "@/types";
+import type { RecommendationPreference, SortMode, Suggestion, Tier, UserProfile } from "@/types";
 import { getEffectivePrice } from "@/utils/incentives";
 
 export type SortFn = (suggestions: Suggestion[]) => Suggestion[];
 
 const TIER_BOOST: Record<Tier, number> = { 1: 1.15, 2: 1.0, 3: 0.9 };
+const BUNDLE_PAIRS: Record<string, string[]> = {
+  thermostat: ["hvac"],
+  hvac: ["thermostat"],
+  "water heater": ["insulation"],
+  insulation: ["water heater"],
+};
 
-function recommendedScore(suggestion: Suggestion): number {
+function getBundleBoost(suggestion: Suggestion, list: Suggestion[]): number {
+  const partners = BUNDLE_PAIRS[suggestion.category.toLowerCase()] ?? [];
+  const hasPartner = partners.some((partner) =>
+    list.some((other) => other.id !== suggestion.id && other.category.toLowerCase() === partner)
+  );
+  return hasPartner ? 1.12 : 1;
+}
+
+function recommendedScore(
+  suggestion: Suggestion,
+  preference: RecommendationPreference,
+  list: Suggestion[],
+  targetBillUSD?: number
+): number {
+  const confidence = suggestion.confidenceScore ?? 0.7;
   const price = getEffectivePrice(suggestion);
   const annualSavings = suggestion.estimatedMonthlySavingsUSD * 12;
   const roi = price <= 0 ? annualSavings : annualSavings / price;
   const efficiency = suggestion.conversionEfficiencyPct / 100;
-  return (roi * 0.6 + efficiency * 0.4) * TIER_BOOST[suggestion.tier];
+  const savingsWeight = preference === "savings" ? 1 : preference === "budget" ? 0.5 : 0.8;
+  const budgetWeight = preference === "budget" ? 1 : 0.4;
+  const impactWeight = preference === "impact" ? 1 : 0.3;
+  const speedWeight = preference === "speed" ? 1 : 0.25;
+  const targetPressure = targetBillUSD && targetBillUSD > 0 ? Math.min(1.2, 1 + targetBillUSD / 500) : 1;
+  const budgetBandPenalty = price > 2500 ? 0.9 : price > 1000 ? 0.95 : 1;
+  const confidenceBoost = confidence >= 0.85 ? 1.08 : confidence >= 0.65 ? 1 : 0.9;
+
+  return (
+    ((roi * speedWeight + efficiency * impactWeight + (annualSavings / 1000) * savingsWeight) *
+      TIER_BOOST[suggestion.tier] +
+      (price <= 0 ? 0 : (1 / Math.max(1, price)) * budgetWeight * 100)) *
+      getBundleBoost(suggestion, list) *
+      targetPressure *
+      budgetBandPenalty *
+      confidenceBoost
+  );
 }
 
 export const sortRecommended: SortFn = (list) =>
-  [...list].sort((a, b) => recommendedScore(b) - recommendedScore(a));
+  [...list].sort((a, b) => recommendedScore(b, "savings", list) - recommendedScore(a, "savings", list));
 
 export const sortPriceLowHigh: SortFn = (list) =>
   [...list].sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
@@ -41,4 +77,19 @@ export const SORT_MODE_LABELS: Record<SortMode, string> = {
 
 export function sortSuggestions(list: Suggestion[], mode: SortMode): Suggestion[] {
   return SORTERS[mode](list);
+}
+
+export function sortSuggestionsForProfile(
+  list: Suggestion[],
+  profile: UserProfile,
+  mode: SortMode = "recommended",
+  targetBillUSD?: number
+): Suggestion[] {
+  if (mode !== "recommended") return sortSuggestions(list, mode);
+  return [...list]
+    .filter((suggestion) => suggestion.priceUSD <= profile.maxBudgetUSD || profile.maxBudgetUSD <= 0)
+    .sort((a, b) =>
+      recommendedScore(b, profile.preference, list, targetBillUSD) -
+      recommendedScore(a, profile.preference, list, targetBillUSD)
+    );
 }

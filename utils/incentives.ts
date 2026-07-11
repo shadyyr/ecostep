@@ -1,15 +1,35 @@
 import { incentives as incentiveTable } from "@/data/incentives";
 import type { AppliedIncentive, IncentiveEntry, Suggestion } from "@/types";
 
+import { normalizeCategory } from "@/data/roadmapConfig";
+
 export function getMatchingIncentives(
   category: string,
   zipCode: string,
   table: IncentiveEntry[] = incentiveTable
 ): IncentiveEntry[] {
-  const normalizedCategory = category.trim().toLowerCase();
+  const normalizedCategory = normalizeCategory(category);
+  const normalizedZip = zipCode.trim().toUpperCase();
+
   return table.filter((entry) => {
-    const categoryMatches = entry.targetCategory.trim().toLowerCase() === normalizedCategory;
-    const zipMatches = entry.zipCodePrefix === "ANY" || zipCode.startsWith(entry.zipCodePrefix);
+    const categoryTokens = entry.targetCategory
+      .split(",")
+      .map((token) => normalizeCategory(token))
+      .filter(Boolean);
+    const categoryMatches = categoryTokens.some((token) => {
+      const normalizedToken = token.trim().toLowerCase();
+      return (
+        normalizedToken === normalizedCategory ||
+        normalizedCategory.includes(normalizedToken) ||
+        normalizedToken.includes(normalizedCategory)
+      );
+    });
+
+    const zipMatches =
+      entry.zipCodePrefix === "ANY" ||
+      normalizedZip.startsWith(entry.zipCodePrefix.toUpperCase()) ||
+      normalizedZip.startsWith(entry.zipCodePrefix.slice(0, 3).toUpperCase());
+
     return categoryMatches && zipMatches;
   });
 }

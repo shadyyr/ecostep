@@ -8,6 +8,24 @@ export const DEFAULT_TIER: Tier = 2;
 export const DEFAULT_PRICE_USD = 1000;
 export const DEFAULT_EFFICIENCY_GAIN_PCT = 40;
 
+export interface RegionalProfile {
+  zipPrefix: string;
+  label: string;
+  savingsMultiplier: number;
+  efficiencyMultiplier: number;
+  confidenceMultiplier: number;
+}
+
+export const REGIONAL_PROFILES: RegionalProfile[] = [
+  { zipPrefix: "981", label: "Pacific Northwest", savingsMultiplier: 1.08, efficiencyMultiplier: 1.05, confidenceMultiplier: 1.05 },
+  { zipPrefix: "902", label: "Southern California", savingsMultiplier: 1.12, efficiencyMultiplier: 1.08, confidenceMultiplier: 1.1 },
+  { zipPrefix: "941", label: "Bay Area", savingsMultiplier: 1.1, efficiencyMultiplier: 1.06, confidenceMultiplier: 1.08 },
+  { zipPrefix: "328", label: "Central Florida", savingsMultiplier: 1.02, efficiencyMultiplier: 1.02, confidenceMultiplier: 0.98 },
+  { zipPrefix: "770", label: "Gulf Coast", savingsMultiplier: 0.95, efficiencyMultiplier: 0.97, confidenceMultiplier: 0.95 },
+  { zipPrefix: "100", label: "New York Metro", savingsMultiplier: 1.04, efficiencyMultiplier: 1.03, confidenceMultiplier: 1.02 },
+  { zipPrefix: "ANY", label: "national average", savingsMultiplier: 1, efficiencyMultiplier: 1, confidenceMultiplier: 1 },
+];
+
 export const CATEGORY_TIER_MAP: Record<string, Tier> = {
   "thermostat": 1,
   "weatherization": 1,
@@ -105,12 +123,78 @@ export const CATEGORY_DESCRIPTION_MAP: Record<string, string> = {
   "solar": "Solar panels convert sunlight into clean electricity, eliminating grid dependency and providing 25+ years of energy generation with minimal maintenance.",
 };
 
+const CATEGORY_ALIASES: Record<string, string> = {
+  "air con": "air conditioner",
+  "ac": "air conditioner",
+  "ac condenser": "ac condenser",
+  "hvac": "hvac",
+  "waterheater": "water heater",
+  "water heater": "water heater",
+  "electricalpanel": "electrical panel",
+  "electrical panel": "electrical panel",
+  "battery": "battery storage",
+  "battery storage": "battery storage",
+  "heatpump": "heat pump",
+  "heat pump": "heat pump",
+  "furnace": "furnace",
+  "range": "range",
+  "clothes dryer": "clothes dryer",
+  "oven": "oven",
+  "cooktop": "cooktop",
+  "thermostat": "thermostat",
+  "weatherization": "weatherization",
+  "insulation": "insulation",
+  "led lighting": "led lighting",
+  "smart plug": "smart plug",
+  "solar": "solar",
+};
+
+const FUEL_ALIASES: Record<string, string> = {
+  "natural gas": "natural gas",
+  "nat gas": "natural gas",
+  "gas": "natural gas",
+  "propane": "propane",
+  "heating oil": "heating oil",
+  "fuel oil": "heating oil",
+  "electric": "electricity",
+  "electricity": "electricity",
+  "not found": "not found",
+  "unknown": "not found",
+};
+
 export function normalizeCategory(category: string): string {
-  return category.trim().toLowerCase();
+  const normalized = category.trim().toLowerCase();
+  return CATEGORY_ALIASES[normalized] ?? normalized;
 }
 
 export function normalizeFuelSource(fuelSource: string): string {
-  return fuelSource.trim().toLowerCase();
+  const normalized = fuelSource.trim().toLowerCase();
+  return FUEL_ALIASES[normalized] ?? normalized;
+}
+
+export function getRegionalProfile(zipCode: string): RegionalProfile {
+  const normalized = zipCode.trim();
+  const prefix = normalized.replace(/\D/g, "").slice(0, 3);
+  return (
+    REGIONAL_PROFILES.find((profile) => profile.zipPrefix === prefix) ??
+    REGIONAL_PROFILES.find((profile) => profile.zipPrefix === "ANY")!
+  );
+}
+
+export function getRegionalAdjustment(zipCode: string, category: string) {
+  const profile = getRegionalProfile(zipCode);
+  const normalizedCategory = normalizeCategory(category);
+  const categoryBoost = /(?:water heater|furnace|heat pump|air conditioner|hvac|battery storage)/.test(
+    normalizedCategory
+  )
+    ? 1.08
+    : 1;
+
+  return {
+    ...profile,
+    savingsMultiplier: profile.savingsMultiplier * categoryBoost,
+    efficiencyMultiplier: profile.efficiencyMultiplier * (categoryBoost > 1 ? 1.02 : 1),
+  };
 }
 
 export const APPLIANCE_CATEGORY_OPTIONS = [

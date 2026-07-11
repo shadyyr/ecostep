@@ -22,7 +22,7 @@ export function TargetBillSimulator() {
       simulateTargetBill(
         currentBill,
         targetBill,
-        activeSuggestions.filter((s) => !s.applied)
+        activeSuggestions.filter((s) => !s.accepted)
       ),
     [currentBill, targetBill, activeSuggestions]
   );
@@ -66,6 +66,9 @@ export function TargetBillSimulator() {
           <p className="text-sm">
             To shave off <strong>{currency.format(result.requiredMonthlySavingsUSD)}/mo</strong>,
             complete:
+          </p>
+          <p className="text-xs text-black/50 dark:text-white/50">
+            Budget-aware tip: prioritize the highest-impact upgrades that fit within your plan and still leave room for incentives.
           </p>
           <ol className="flex flex-col gap-1.5 text-sm">
             {result.stack.map((s) => (

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useAppState } from "@/context/AppStateContext";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import type { RecommendationPreference } from "@/types";
 
 const ZIP_PATTERN = /^\d{5}$/;
 
@@ -11,6 +12,9 @@ export function OnboardingForm() {
   const { setProfile } = useAppState();
   const [zipCode, setZipCode] = useState("");
   const [hasSolar, setHasSolar] = useState(false);
+  const [preference, setPreference] = useState<RecommendationPreference>("savings");
+  const [maxBudgetUSD, setMaxBudgetUSD] = useState(5000);
+  const [targetBillUSD, setTargetBillUSD] = useState(120);
   const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(e: FormEvent) {
@@ -20,7 +24,7 @@ export function OnboardingForm() {
       return;
     }
     setError(null);
-    setProfile({ zipCode, hasSolar });
+    setProfile({ zipCode, hasSolar, preference, maxBudgetUSD, targetBillUSD });
   }
 
   return (
@@ -32,6 +36,11 @@ export function OnboardingForm() {
         <p className="mt-2 text-sm text-black/60 dark:text-white/60">
           Your phased, geo-targeted roadmap to a cleaner, cheaper home.
         </p>
+        <div className="mt-3 flex justify-center gap-2 text-xs text-brand-700 dark:text-brand-250">
+          <span className="rounded-full border border-brand-250/50 px-2.5 py-1">1. Tell us about your home</span>
+          <span className="rounded-full border border-brand-250/50 px-2.5 py-1">2. Pick your goal</span>
+          <span className="rounded-full border border-brand-250/50 px-2.5 py-1">3. Start saving</span>
+        </div>
       </div>
 
       <Card>
@@ -70,6 +79,45 @@ export function OnboardingForm() {
                 Boosts your baseline EcoScore and shifts your roadmap toward storage and
                 electrification instead of power generation.
               </span>
+            </span>
+          </label>
+
+          <div className="rounded-lg border border-black/10 p-3.5 dark:border-white/15">
+            <label className="mb-2 block text-sm font-medium">What matters most?</label>
+            <select
+              value={preference}
+              onChange={(e) => setPreference(e.target.value as RecommendationPreference)}
+              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
+            >
+              <option value="savings">Highest savings</option>
+              <option value="budget">Lowest upfront cost</option>
+              <option value="impact">Biggest carbon impact</option>
+              <option value="speed">Fastest payoff</option>
+            </select>
+          </div>
+
+          <label className="flex flex-col gap-1 text-sm">
+            Max budget for upgrades
+            <input
+              type="number"
+              min={0}
+              value={maxBudgetUSD}
+              onChange={(e) => setMaxBudgetUSD(Number(e.target.value) || 0)}
+              className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            Target monthly bill
+            <input
+              type="number"
+              min={0}
+              value={targetBillUSD}
+              onChange={(e) => setTargetBillUSD(Number(e.target.value) || 0)}
+              className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
+            />
+            <span className="text-xs text-black/50 dark:text-white/50">
+              Helps EcoStep prioritize the actions that move you closest to your goal.
             </span>
           </label>
 
