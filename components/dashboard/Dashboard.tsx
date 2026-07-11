@@ -75,7 +75,7 @@ export function Dashboard() {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Uploaded Appliances</h2>
+          <h2 className="text-base font-semibold">Recommended Appliances</h2>
           <span className="text-xs text-black/50 dark:text-white/50">
             {sorted.length} to review
           </span>

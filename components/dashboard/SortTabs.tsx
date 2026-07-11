@@ -1,7 +1,7 @@
 import type { SortMode } from "@/types";
 import { SORT_MODE_LABELS } from "@/utils/sorting";
 
-const MODES: SortMode[] = ["recommended", "priceLowHigh", "efficiencyHighLow", "maxSavings"];
+const MODES: SortMode[] = ["priceLowHigh", "efficiencyHighLow", "maxSavings"];
 
 export function SortTabs({
   value,
