@@ -138,10 +138,18 @@ export function Settings({
                     }
                     className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
                   >
-                    <option value="house">House</option>
-                    <option value="apartment">Apartment</option>
-                    <option value="townhouse">Townhouse</option>
-                    <option value="duplex">Duplex</option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="house">
+                      House
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="apartment">
+                      Apartment
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="townhouse">
+                      Townhouse
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="duplex">
+                      Duplex
+                    </option>
                   </select>
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
@@ -178,10 +186,18 @@ export function Settings({
                     onChange={(e) => setPreference(e.target.value as RecommendationPreference)}
                     className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
                   >
-                    <option value="savings">Highest savings</option>
-                    <option value="budget">Lowest upfront cost</option>
-                    <option value="impact">Biggest carbon impact</option>
-                    <option value="speed">Fastest payoff</option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="savings">
+                      Highest savings
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="budget">
+                      Lowest upfront cost
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="impact">
+                      Biggest carbon impact
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="speed">
+                      Fastest payoff
+                    </option>
                   </select>
                 </label>
                 <label className="mt-6 flex items-center gap-2 text-sm font-medium sm:mt-0">

@@ -45,10 +45,10 @@ export function ManualEntryForm({ onSubmit, onCancel }: ManualEntryFormProps) {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border border-black/10 px-3 py-2.5 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
+          className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
         >
           {APPLIANCE_CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt} value={opt}>
+            <option key={opt} className="bg-white text-black dark:bg-[#111814] dark:text-white" value={opt}>
               {opt}
             </option>
           ))}
