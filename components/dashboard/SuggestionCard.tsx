@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type {
   AppliedIncentive,
-  RequiredDocument,
   Suggestion,
   SuggestionIncentiveInsight,
   UserProfile,
@@ -35,11 +34,6 @@ function formatDeadlineNote(
   const date = new Date(`${incentive.deadlineISO}T00:00:00`);
   if (Number.isNaN(date.getTime())) return null;
   return `expires ${deadlineFormatter.format(date)}`;
-}
-
-function formatDocuments(documents?: RequiredDocument[]): string {
-  if (!documents || documents.length === 0) return "Confirm required documents with the program administrator.";
-  return documents.map((document) => document.name).join(", ");
 }
 
 function getPaperworkHours(incentive: PopupIncentive): number | null {
@@ -82,16 +76,28 @@ export function SuggestionCard({
   const [showDetails, setShowDetails] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [expandedIncentive, setExpandedIncentive] = useState<string | null>(null);
+  const [expandedDocuments, setExpandedDocuments] = useState<string | null>(null);
   const effectivePrice = getEffectivePrice(suggestion);
   const totalRebate = suggestion.priceUSD - effectivePrice;
   const insight = profile ? getSuggestionInsight(suggestion, profile, allSuggestions) : null;
   const incentiveMatches = incentiveInsight?.matches ?? [];
-  const selectedIncentive =
-    incentiveMatches.find((incentive) => incentive.incentiveName === expandedIncentive) ??
-    suggestion.appliedIncentives.find((incentive) => incentive.incentiveName === expandedIncentive) ??
-    null;
+
+  function findIncentiveByName(name: string | null): PopupIncentive | null {
+    if (!name) return null;
+    return (
+      incentiveMatches.find((incentive) => incentive.incentiveName === name) ??
+      suggestion.appliedIncentives.find((incentive) => incentive.incentiveName === name) ??
+      null
+    );
+  }
+
+  const selectedIncentive = findIncentiveByName(expandedIncentive);
   const selectedDeadlineNote = selectedIncentive ? formatDeadlineNote(selectedIncentive) : null;
-  const selectedPaperworkHours = selectedIncentive ? getPaperworkHours(selectedIncentive) : null;
+
+  const selectedDocumentsIncentive = findIncentiveByName(expandedDocuments);
+  const selectedDocumentsPaperworkHours = selectedDocumentsIncentive
+    ? getPaperworkHours(selectedDocumentsIncentive)
+    : null;
 
   function handleAccept() {
     if (!suggestion.accepted) {
@@ -173,7 +179,7 @@ export function SuggestionCard({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setExpandedIncentive(incentive.incentiveName)}
+                    onClick={() => setExpandedDocuments(incentive.incentiveName)}
                     className="w-fit text-left text-black/45 underline underline-offset-2 hover:text-black/65 dark:text-white/45 dark:hover:text-white/65"
                   >
                     📋 {incentive.requiredDocuments.length}{" "}
@@ -405,15 +411,6 @@ export function SuggestionCard({
               <p className="mt-1 text-sm text-black/70 dark:text-white/75">
                 {getNextStep(selectedIncentive)}
               </p>
-              <p className="mt-2 text-xs text-black/50 dark:text-white/50">
-                Documents: {formatDocuments(selectedIncentive.requiredDocuments)}
-              </p>
-              {selectedPaperworkHours !== null ? (
-                <p className="mt-1 text-xs text-black/50 dark:text-white/50">
-                  Estimated paperwork: ~{selectedPaperworkHours}{" "}
-                  {selectedPaperworkHours === 1 ? "hr" : "hrs"}
-                </p>
-              ) : null}
               {selectedDeadlineNote ? (
                 <p className="mt-1 text-xs text-black/50 dark:text-white/50">
                   Timing: {selectedDeadlineNote}
@@ -425,10 +422,36 @@ export function SuggestionCard({
                 </p>
               ) : null}
             </div>
+          </div>
+        ) : null}
+      </Modal>
 
-            {selectedIncentive.requiredDocuments && selectedIncentive.requiredDocuments.length > 0 ? (
+      <Modal
+        open={selectedDocumentsIncentive !== null}
+        onClose={() => setExpandedDocuments(null)}
+        title={
+          selectedDocumentsIncentive
+            ? `${selectedDocumentsIncentive.incentiveName} — Paperwork`
+            : "Paperwork"
+        }
+      >
+        {selectedDocumentsIncentive ? (
+          <div className="flex flex-col gap-4">
+            <div className="rounded-lg border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.04]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
+                Estimated paperwork time
+              </p>
+              <p className="mt-1 text-2xl font-semibold">
+                {selectedDocumentsPaperworkHours !== null
+                  ? `~${selectedDocumentsPaperworkHours} ${selectedDocumentsPaperworkHours === 1 ? "hr" : "hrs"}`
+                  : "Unknown"}
+              </p>
+            </div>
+
+            {selectedDocumentsIncentive.requiredDocuments &&
+            selectedDocumentsIncentive.requiredDocuments.length > 0 ? (
               <ul className="flex flex-col gap-1.5 text-sm text-black/60 dark:text-white/70">
-                {selectedIncentive.requiredDocuments.map((document) => (
+                {selectedDocumentsIncentive.requiredDocuments.map((document) => (
                   <li
                     key={document.name}
                     className="flex items-center justify-between gap-3 rounded-lg bg-black/[0.02] px-3 py-2 dark:bg-white/[0.04]"
@@ -440,7 +463,11 @@ export function SuggestionCard({
                   </li>
                 ))}
               </ul>
-            ) : null}
+            ) : (
+              <p className="text-sm text-black/50 dark:text-white/50">
+                Confirm required documents with the program administrator.
+              </p>
+            )}
           </div>
         ) : null}
       </Modal>
