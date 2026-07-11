@@ -11,13 +11,18 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function applyTheme(scheme: ColorScheme) {
-  const html = document.documentElement;
+function resolveScheme(scheme: ColorScheme): "light" | "dark" {
   if (scheme === "system") {
-    html.removeAttribute("data-theme");
-  } else {
-    html.setAttribute("data-theme", scheme);
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
+  return scheme;
+}
+
+// Always resolves to an explicit "light"/"dark" attribute (never removes it) so
+// Tailwind's `dark:` custom variant — which matches on [data-theme="dark"], not
+// prefers-color-scheme — applies correctly even when the user is on "system".
+function applyTheme(scheme: ColorScheme) {
+  document.documentElement.setAttribute("data-theme", resolveScheme(scheme));
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -28,6 +33,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     applyTheme(colorScheme);
+  }, [colorScheme]);
+
+  useEffect(() => {
+    if (colorScheme !== "system") return;
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => applyTheme("system");
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
   }, [colorScheme]);
 
   const setColorScheme = (scheme: ColorScheme) => {
