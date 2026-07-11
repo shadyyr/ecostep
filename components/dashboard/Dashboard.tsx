@@ -36,11 +36,13 @@ export function Dashboard() {
     suggestions,
     activeSuggestions,
     rejectSuggestion,
+    restoreSuggestion,
     restoreRejectedSuggestions,
     toggleAccepted,
     resetAll,
     parsedBill,
     setUtilityBill,
+    setProfile,
   } = useAppState();
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -403,12 +405,16 @@ export function Dashboard() {
       </Modal>
 
       <Settings
+        key={`${profile.zipCode}-${profile.currentBillUSD ?? 0}-${profile.targetBillUSD ?? 0}-${profile.homeType ?? "house"}-${profile.preference}-${profile.hasSolar ? 1 : 0}`}
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        profile={profile}
         uploadedSuggestions={uploadedSuggestions}
         rejectedSuggestions={rejectedSuggestions}
         onRejectSuggestion={rejectSuggestion}
+        onRestoreSuggestion={restoreSuggestion}
         onRestoreRejectedSuggestions={restoreRejectedSuggestions}
+        onUpdateProfile={setProfile}
       />
 
       <footer className="pt-2 pb-6 text-center">

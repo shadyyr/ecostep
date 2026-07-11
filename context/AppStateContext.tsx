@@ -29,6 +29,7 @@ type Action =
   | { type: "SET_PROFILE"; payload: UserProfile }
   | { type: "ADD_SUGGESTIONS"; payload: Suggestion[] }
   | { type: "REJECT_SUGGESTION"; payload: { id: string } }
+  | { type: "RESTORE_SUGGESTION"; payload: { id: string } }
   | { type: "RESTORE_REJECTED_SUGGESTIONS" }
   | { type: "TOGGLE_ACCEPTED"; payload: { id: string } }
   | { type: "SET_UTILITY_BILL"; payload: ParsedUtilityBill | null }
@@ -70,6 +71,16 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
     }
+    case "RESTORE_SUGGESTION": {
+      const { id } = action.payload;
+      return {
+        ...state,
+        rejectedSuggestionIds: state.rejectedSuggestionIds.filter((rejectedId) => rejectedId !== id),
+        suggestions: state.suggestions.map((s) =>
+          s.id === id ? { ...s, rejected: false } : s
+        ),
+      };
+    }
     case "RESTORE_REJECTED_SUGGESTIONS": {
       return {
         ...state,
@@ -104,6 +115,7 @@ interface AppStateContextValue extends AppState {
   setProfile(profile: UserProfile): void;
   addSuggestions(suggestions: Suggestion[]): void;
   rejectSuggestion(id: string): void;
+  restoreSuggestion(id: string): void;
   restoreRejectedSuggestions(): void;
   toggleAccepted(id: string): void;
   setUtilityBill(bill: ParsedUtilityBill | null): void;
@@ -206,6 +218,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       addSuggestions: (suggestions) =>
         dispatch({ type: "ADD_SUGGESTIONS", payload: suggestions }),
       rejectSuggestion: (id) => dispatch({ type: "REJECT_SUGGESTION", payload: { id } }),
+      restoreSuggestion: (id) => dispatch({ type: "RESTORE_SUGGESTION", payload: { id } }),
       restoreRejectedSuggestions: () => dispatch({ type: "RESTORE_REJECTED_SUGGESTIONS" }),
       toggleAccepted: (id) => dispatch({ type: "TOGGLE_ACCEPTED", payload: { id } }),
       setUtilityBill: (bill) => dispatch({ type: "SET_UTILITY_BILL", payload: bill }),
