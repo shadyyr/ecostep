@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7faf8;
+  --foreground: #171717;
+
+  /* Single-hue blue ramp: EcoScore meter, conversion-efficiency bars, tier badges. */
+  --color-brand-100: #cde2fb;
+  --color-brand-250: #86b6ef;
+  --color-brand-400: #3987e5;
+  --color-brand-600: #184f95;
+  --color-brand-900: #0d366b;
+
+  /* Fixed status colors — true state events only, always paired with icon+label. */
+  --color-status-good: #0ca30c;
+  --color-status-warning: #fab219;
+  --color-status-critical: #d03b3b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand-100: var(--color-brand-100);
+  --color-brand-250: var(--color-brand-250);
+  --color-brand-400: var(--color-brand-400);
+  --color-brand-600: var(--color-brand-600);
+  --color-brand-900: var(--color-brand-900);
+  --color-status-good: var(--color-status-good);
+  --color-status-warning: var(--color-status-warning);
+  --color-status-critical: var(--color-status-critical);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0f0c;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
