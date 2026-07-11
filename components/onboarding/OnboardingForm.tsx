@@ -13,7 +13,7 @@ export function OnboardingForm() {
   const [zipCode, setZipCode] = useState("");
   const [hasSolar, setHasSolar] = useState(false);
   const [preference, setPreference] = useState<RecommendationPreference>("savings");
-  const [maxBudgetUSD, setMaxBudgetUSD] = useState(5000);
+  const [maxBudgetUSD] = useState(5000);
   const [currentBillUSD, setCurrentBillUSD] = useState(120);
   const [targetBillUSD, setTargetBillUSD] = useState(95);
   const [homeSizeSqft, setHomeSizeSqft] = useState(1800);
@@ -151,7 +151,9 @@ export function OnboardingForm() {
               Home type
               <select
                 value={homeType}
-                onChange={(e) => setHomeType(e.target.value as any)}
+                onChange={(e) =>
+                  setHomeType(e.target.value as "house" | "apartment" | "townhouse" | "duplex")
+                }
                 className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
               >
                 <option value="house">House</option>

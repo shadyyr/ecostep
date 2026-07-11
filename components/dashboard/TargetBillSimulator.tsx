@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
 import { simulateTargetBill } from "@/utils/calculations";
@@ -21,14 +21,15 @@ export function TargetBillSimulator({ profile }: TargetBillSimulatorProps) {
   const { activeSuggestions } = useAppState();
   const [currentBill, setCurrentBill] = useState(profile?.currentBillUSD ?? 100);
   const [targetBill, setTargetBill] = useState(profile?.targetBillUSD ?? 75);
+  const [syncedProfile, setSyncedProfile] = useState(profile);
 
-  useEffect(() => {
+  if (profile !== syncedProfile) {
+    setSyncedProfile(profile);
     if (profile) {
       setCurrentBill(profile.currentBillUSD ?? currentBill);
       setTargetBill(profile.targetBillUSD ?? targetBill);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile]);
+  }
 
   const result = useMemo(
     () =>
