@@ -7,6 +7,7 @@ import {
   calculatePotentialEcoScore,
   getPersonalizedNextAction,
 } from "@/utils/calculations";
+import { analyzeIncentives } from "@/lib/intelligence/incentiveIntelligence";
 import { sortSuggestionsForProfile } from "@/utils/sorting";
 import type { SortMode } from "@/types";
 import { EcoScoreDisplay } from "@/components/dashboard/EcoScoreDisplay";
@@ -77,6 +78,12 @@ export function Dashboard() {
     () => (profile ? getPersonalizedNextAction(activeSuggestions, profile, profile.targetBillUSD) : null),
     [activeSuggestions, profile]
   );
+
+  const incentiveInsightById = useMemo(() => {
+    if (!profile) return new Map();
+    const { insights } = analyzeIncentives({ profile, suggestions: activeSuggestions });
+    return new Map(insights.map((insight) => [insight.suggestionId, insight]));
+  }, [profile, activeSuggestions]);
 
   const completedSteps = activeSuggestions.filter((suggestion) => suggestion.accepted).length;
   const totalPlannedSteps = Math.max(1, activeSuggestions.filter((suggestion) => !suggestion.rejected).length);
@@ -197,6 +204,7 @@ export function Dashboard() {
               onAccept={toggleAccepted}
               profile={profile}
               allSuggestions={activeSuggestions}
+              incentiveInsight={incentiveInsightById.get(suggestion.id)}
             />
           ))}
           {sorted.length === 0 ? (
@@ -224,6 +232,7 @@ export function Dashboard() {
                 onAccept={toggleAccepted}
                 profile={profile}
                 allSuggestions={activeSuggestions}
+                incentiveInsight={incentiveInsightById.get(suggestion.id)}
               />
             ))}
           </div>

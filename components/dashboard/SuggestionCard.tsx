@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { Suggestion, UserProfile } from "@/types";
+import type { Suggestion, SuggestionIncentiveInsight, UserProfile } from "@/types";
 import { Card } from "@/components/ui/Card";
-import { TierBadge } from "@/components/ui/Badge";
+import { TierBadge, StatusBadge } from "@/components/ui/Badge";
 import { Meter } from "@/components/ui/Meter";
 import { RejectButton } from "@/components/dashboard/RejectButton";
 import { Modal } from "@/components/ui/Modal";
@@ -14,12 +14,25 @@ const currency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
+const deadlineFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+function formatDeadlineNote(incentive: SuggestionIncentiveInsight["matches"][number]): string | null {
+  if (!incentive.deadlineISO) return null;
+  if (incentive.daysUntilDeadline !== undefined && incentive.daysUntilDeadline < 0) {
+    return "may have expired — verify";
+  }
+  const date = new Date(`${incentive.deadlineISO}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return `expires ${deadlineFormatter.format(date)}`;
+}
+
 interface SuggestionCardProps {
   suggestion: Suggestion;
   onReject: (id: string) => void;
   onAccept: (id: string) => void;
   profile?: UserProfile;
   allSuggestions?: Suggestion[];
+  incentiveInsight?: SuggestionIncentiveInsight;
 }
 
 export function SuggestionCard({
@@ -28,12 +41,14 @@ export function SuggestionCard({
   onAccept,
   profile,
   allSuggestions,
+  incentiveInsight,
 }: SuggestionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const effectivePrice = getEffectivePrice(suggestion);
   const totalRebate = suggestion.priceUSD - effectivePrice;
   const insight = profile ? getSuggestionInsight(suggestion, profile, allSuggestions) : null;
+  const incentiveMatches = incentiveInsight?.matches ?? [];
 
   function handleAccept() {
     if (!suggestion.accepted) {
@@ -99,7 +114,27 @@ export function SuggestionCard({
           </span>
         </div>
 
-        {suggestion.appliedIncentives.length > 0 ? (
+        {incentiveMatches.length > 0 ? (
+          <ul className="flex flex-col gap-2 text-xs text-black/60 dark:text-white/60">
+            {incentiveMatches.map((incentive) => {
+              const deadlineNote = formatDeadlineNote(incentive);
+              return (
+                <li key={incentive.incentiveName} className="flex flex-col gap-0.5">
+                  <span>
+                    🎁 {incentive.incentiveName} — {currency.format(incentive.rebateValueUSD)} (
+                    {incentive.type})
+                  </span>
+                  <span className="text-black/45 dark:text-white/45">
+                    📋 {incentive.requiredDocuments.length}{" "}
+                    {incentive.requiredDocuments.length === 1 ? "document" : "documents"} · ~
+                    {incentive.paperworkHours} {incentive.paperworkHours === 1 ? "hr" : "hrs"} paperwork
+                    {deadlineNote ? ` · ${deadlineNote}` : ""}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : suggestion.appliedIncentives.length > 0 ? (
           <ul className="flex flex-col gap-1 text-xs text-black/60 dark:text-white/60">
             {suggestion.appliedIncentives.map((incentive) => (
               <li key={incentive.incentiveName}>
@@ -163,7 +198,82 @@ export function SuggestionCard({
             </div>
           </div>
 
-          {suggestion.appliedIncentives.length > 0 ? (
+          {incentiveMatches.length > 0 ? (
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-semibold">Incentives &amp; paperwork</h4>
+                {incentiveInsight ? (
+                  <span className="text-xs font-medium text-status-good">
+                    {currency.format(incentiveInsight.totalPotentialRebateUSD)} potential
+                  </span>
+                ) : null}
+              </div>
+              {incentiveInsight?.eligibilitySummary ? (
+                <p className="mb-3 text-xs text-black/50 dark:text-white/50">
+                  {incentiveInsight.eligibilitySummary}
+                </p>
+              ) : null}
+
+              {incentiveInsight && incentiveInsight.warnings.length > 0 ? (
+                <div className="mb-3 flex flex-col gap-1.5">
+                  {incentiveInsight.warnings.map((warning) => (
+                    <StatusBadge key={warning} tone="warning">
+                      {warning}
+                    </StatusBadge>
+                  ))}
+                </div>
+              ) : null}
+
+              <ul className="flex flex-col gap-3 text-sm text-black/60 dark:text-white/60">
+                {incentiveMatches.map((incentive) => {
+                  const deadlineNote = formatDeadlineNote(incentive);
+                  return (
+                    <li
+                      key={incentive.incentiveName}
+                      className="flex flex-col gap-1.5 rounded-lg bg-black/2 p-3 dark:bg-white/2"
+                    >
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="flex-1 font-medium break-words text-black dark:text-white">
+                          {incentive.incentiveName}
+                        </span>
+                        <span className="font-medium text-status-good whitespace-nowrap">
+                          {currency.format(incentive.rebateValueUSD)}
+                        </span>
+                      </div>
+                      <p className="text-xs">{incentive.eligibility}</p>
+                      <p className="text-xs text-black/50 dark:text-white/50">
+                        📋 {incentive.requiredDocuments.join(", ")}
+                      </p>
+                      <p className="text-xs text-black/50 dark:text-white/50">
+                        ~{incentive.paperworkHours} {incentive.paperworkHours === 1 ? "hr" : "hrs"} of
+                        paperwork{deadlineNote ? ` · ${deadlineNote}` : ""}
+                        {incentive.stackable === false ? " · not stackable with other rebates" : ""}
+                      </p>
+                      <p className="text-xs italic text-black/50 dark:text-white/50">
+                        {incentive.nextStep}
+                      </p>
+                      {incentive.sourceLabel ? (
+                        <p className="text-[11px] text-black/35 dark:text-white/35">
+                          Source: {incentive.sourceLabel}
+                        </p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {incentiveInsight && incentiveInsight.paperworkSteps.length > 0 ? (
+                <div className="mt-3 rounded-lg border border-black/10 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                  <p className="mb-1.5 text-xs font-semibold">Paperwork checklist</p>
+                  <ul className="flex list-disc flex-col gap-1 pl-4 text-xs text-black/60 dark:text-white/60">
+                    {incentiveInsight.paperworkSteps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : suggestion.appliedIncentives.length > 0 ? (
             <div>
               <h4 className="text-sm font-semibold mb-3">Applied incentives</h4>
               <ul className="flex flex-col gap-2 text-sm text-black/60 dark:text-white/60">
