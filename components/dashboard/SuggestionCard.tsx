@@ -168,7 +168,7 @@ export function SuggestionCard({
                     onClick={() => setExpandedIncentive(incentive.incentiveName)}
                     className="w-fit text-left font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900 dark:text-brand-250 dark:hover:text-brand-100"
                   >
-                    🎁 {incentive.incentiveName} — {currency.format(incentive.rebateValueUSD)} (
+                    💸 {incentive.incentiveName} — {currency.format(incentive.rebateValueUSD)} (
                     {incentive.type})
                   </button>
                   <button
@@ -194,7 +194,7 @@ export function SuggestionCard({
                   onClick={() => setExpandedIncentive(incentive.incentiveName)}
                   className="text-left font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900 dark:text-brand-250 dark:hover:text-brand-100"
                 >
-                🎁 {incentive.incentiveName} — {currency.format(incentive.rebateValueUSD)} (
+                💸 {incentive.incentiveName} — {currency.format(incentive.rebateValueUSD)} (
                 {incentive.type})
                 </button>
               </li>
