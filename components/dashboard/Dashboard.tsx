@@ -78,8 +78,8 @@ export function Dashboard() {
     [suggestions]
   );
 
-  const recommendedSuggestions = useMemo(
-    () => activeSuggestions.filter((s) => s.source === "mock" && !s.accepted),
+  const reviewableSuggestions = useMemo(
+    () => activeSuggestions.filter((s) => !s.accepted),
     [activeSuggestions]
   );
 
@@ -91,9 +91,9 @@ export function Dashboard() {
   const sorted = useMemo(
     () =>
       profile
-        ? sortSuggestionsForProfile(recommendedSuggestions, profile, sortMode, profile.targetBillUSD)
-        : recommendedSuggestions,
-    [recommendedSuggestions, profile, sortMode]
+        ? sortSuggestionsForProfile(reviewableSuggestions, profile, sortMode, profile.targetBillUSD)
+        : reviewableSuggestions,
+    [reviewableSuggestions, profile, sortMode]
   );
 
   const roadmapSteps = useMemo(() => {
@@ -145,7 +145,15 @@ export function Dashboard() {
   );
 
   const completedSteps = activeSuggestions.filter((suggestion) => suggestion.accepted).length;
-  const totalPlannedSteps = Math.max(1, activeSuggestions.filter((suggestion) => !suggestion.rejected).length);
+  const activeRoadmapSuggestions = activeSuggestions.filter((suggestion) => !suggestion.rejected);
+  const hasOpenRoadmapSuggestions = activeRoadmapSuggestions.some((suggestion) => !suggestion.accepted);
+  const maxPotentialReached =
+    activeRoadmapSuggestions.length > 0 &&
+    !hasOpenRoadmapSuggestions &&
+    ecoScore !== null &&
+    potentialEcoScore !== null &&
+    potentialEcoScore.score <= ecoScore.score;
+  const totalPlannedSteps = Math.max(1, activeRoadmapSuggestions.length);
   const roadmapSavings = roadmapSteps.reduce(
     (sum, step) => sum + step.suggestion.estimatedMonthlySavingsUSD,
     0
@@ -191,6 +199,7 @@ export function Dashboard() {
         <EcoScoreDisplay
           breakdown={ecoScore}
           potentialScore={potentialEcoScore?.score ?? ecoScore.score}
+          maxPotentialReached={maxPotentialReached}
         />
       ) : null}
 
@@ -371,7 +380,9 @@ export function Dashboard() {
             ))
           ) : (
             <p className="text-sm text-black/50 dark:text-white/50">
-              Add a scan or a manual suggestion to unlock your roadmap.
+              {maxPotentialReached
+                ? "Maximum EcoScore reached. Great job being eco-friendly."
+                : "Add a scan or a manual suggestion to unlock your roadmap."}
             </p>
           )}
         </div>
@@ -403,7 +414,9 @@ export function Dashboard() {
           </AnimatePresence>
           {sorted.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-black/10 p-6 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
-              No appliances to review. Scan an appliance to get started.
+              {maxPotentialReached
+                ? "Maximum EcoScore reached. Great job being eco-friendly."
+                : "No appliances to review. Scan an appliance to get started."}
             </p>
           ) : null}
         </div>

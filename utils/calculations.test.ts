@@ -187,6 +187,8 @@ describe('normalize and scoring logic', () => {
     ];
 
     const sorted = sortSuggestionsForProfile(suggestions, profile, 'recommended', profile.targetBillUSD);
+    expect(sorted).toHaveLength(2);
+    expect(sorted.map((s) => s.id)).toContain('expensive');
     expect(sorted[0].id).toBe('budget');
   });
 });

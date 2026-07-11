@@ -110,7 +110,6 @@ export function sortSuggestionsForProfile(
 ): Suggestion[] {
   if (mode !== "recommended") return sortSuggestions(list, mode);
   return [...list]
-    .filter((suggestion) => suggestion.priceUSD <= profile.maxBudgetUSD || profile.maxBudgetUSD <= 0)
     .sort((a, b) =>
       recommendedScore(b, profile.preference, profile, list, targetBillUSD) -
       recommendedScore(a, profile.preference, profile, list, targetBillUSD)
