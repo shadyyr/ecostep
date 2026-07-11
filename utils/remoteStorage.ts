@@ -36,6 +36,7 @@ export async function loadRemoteState(userId: string): Promise<RemoteLoadResult>
       rejectedSuggestionIds: Array.isArray(raw?.rejectedSuggestionIds)
         ? raw.rejectedSuggestionIds
         : [],
+      parsedBill: raw?.parsedBill ?? null,
     },
   };
 }

@@ -10,7 +10,7 @@ import {
   type Dispatch,
   type ReactNode,
 } from "react";
-import type { Suggestion, UserProfile } from "@/types";
+import type { ParsedUtilityBill, Suggestion, UserProfile } from "@/types";
 import { loadState, saveState, clearState, type PersistedState } from "@/utils/storage";
 import { loadRemoteState, saveRemoteState } from "@/utils/remoteStorage";
 import { buildSeedSuggestions } from "@/data/mockData";
@@ -21,6 +21,7 @@ interface AppState {
   profile: UserProfile | null;
   suggestions: Suggestion[];
   rejectedSuggestionIds: string[];
+  parsedBill: ParsedUtilityBill | null;
 }
 
 type Action =
@@ -29,6 +30,7 @@ type Action =
   | { type: "ADD_SUGGESTIONS"; payload: Suggestion[] }
   | { type: "REJECT_SUGGESTION"; payload: { id: string } }
   | { type: "TOGGLE_ACCEPTED"; payload: { id: string } }
+  | { type: "SET_UTILITY_BILL"; payload: ParsedUtilityBill | null }
   | { type: "RESET_ALL" };
 
 const initialState: AppState = {
@@ -36,6 +38,7 @@ const initialState: AppState = {
   profile: null,
   suggestions: [],
   rejectedSuggestionIds: [],
+  parsedBill: null,
 };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -75,6 +78,9 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
     }
+    case "SET_UTILITY_BILL": {
+      return { ...state, parsedBill: action.payload };
+    }
     case "RESET_ALL": {
       return { ...initialState, status: "ready" };
     }
@@ -89,6 +95,7 @@ interface AppStateContextValue extends AppState {
   addSuggestions(suggestions: Suggestion[]): void;
   rejectSuggestion(id: string): void;
   toggleAccepted(id: string): void;
+  setUtilityBill(bill: ParsedUtilityBill | null): void;
   resetAll(): void;
   activeSuggestions: Suggestion[];
 }
@@ -96,7 +103,7 @@ interface AppStateContextValue extends AppState {
 const AppStateContext = createContext<AppStateContextValue | null>(null);
 
 function guestState(): PersistedState {
-  return loadState() ?? { profile: null, suggestions: [], rejectedSuggestionIds: [] };
+  return loadState() ?? { profile: null, suggestions: [], rejectedSuggestionIds: [], parsedBill: null };
 }
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
@@ -160,10 +167,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       profile: state.profile,
       suggestions: state.suggestions,
       rejectedSuggestionIds: state.rejectedSuggestionIds,
+      parsedBill: state.parsedBill,
     };
     if (user) saveRemoteState(user.id, snapshot);
     else saveState(snapshot);
-  }, [state.status, state.profile, state.suggestions, state.rejectedSuggestionIds, user, identity]);
+  }, [
+    state.status,
+    state.profile,
+    state.suggestions,
+    state.rejectedSuggestionIds,
+    state.parsedBill,
+    user,
+    identity,
+  ]);
 
   const activeSuggestions = useMemo(
     () => state.suggestions.filter((s) => !s.rejected),
@@ -180,6 +196,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "ADD_SUGGESTIONS", payload: suggestions }),
       rejectSuggestion: (id) => dispatch({ type: "REJECT_SUGGESTION", payload: { id } }),
       toggleAccepted: (id) => dispatch({ type: "TOGGLE_ACCEPTED", payload: { id } }),
+      setUtilityBill: (bill) => dispatch({ type: "SET_UTILITY_BILL", payload: bill }),
       resetAll: () => {
         clearState();
         dispatch({ type: "RESET_ALL" });

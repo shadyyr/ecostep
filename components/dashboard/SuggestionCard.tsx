@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type {
+  AffordabilityScenario,
   AppliedIncentive,
   Suggestion,
   SuggestionIncentiveInsight,
@@ -56,6 +57,16 @@ function getIncentiveSummary(incentive: PopupIncentive, suggestion: Suggestion):
   return `${base} Eligibility depends on your address, equipment, installer, and program rules.`;
 }
 
+const AFFORDABILITY_STATUS_META: Record<
+  AffordabilityScenario["status"],
+  { tone: "good" | "warning" | "critical"; label: string }
+> = {
+  cash_positive: { tone: "good", label: "Cash positive" },
+  budget_fit: { tone: "good", label: "Fits your budget" },
+  financing_needed: { tone: "warning", label: "Needs financing" },
+  long_payback: { tone: "warning", label: "Long payback" },
+};
+
 interface SuggestionCardProps {
   suggestion: Suggestion;
   onReject: (id: string) => void;
@@ -63,6 +74,7 @@ interface SuggestionCardProps {
   profile?: UserProfile;
   allSuggestions?: Suggestion[];
   incentiveInsight?: SuggestionIncentiveInsight;
+  affordabilityScenario?: AffordabilityScenario;
 }
 
 export function SuggestionCard({
@@ -72,6 +84,7 @@ export function SuggestionCard({
   profile,
   allSuggestions,
   incentiveInsight,
+  affordabilityScenario,
 }: SuggestionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -154,14 +167,19 @@ export function SuggestionCard({
 
         <Meter value={suggestion.conversionEfficiencyPct} label="Conservation Percentage" />
 
-        <div className="flex items-center justify-between rounded-lg border border-black/10 bg-black/[0.02] px-3 py-2 text-sm dark:border-white/10 dark:bg-white/[0.04]">
-          <span className="text-black/60 dark:text-white/60">Confidence</span>
-          <span className="font-medium text-brand-700 dark:text-brand-250">
-            {typeof suggestion.confidenceScore === "number"
-              ? `${Math.round(suggestion.confidenceScore * 100)}%`
-              : "Medium"}
-          </span>
-        </div>
+        {affordabilityScenario ? (
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <StatusBadge tone={AFFORDABILITY_STATUS_META[affordabilityScenario.status].tone}>
+              {AFFORDABILITY_STATUS_META[affordabilityScenario.status].label}
+            </StatusBadge>
+            <span className="text-black/50 dark:text-white/50">
+              {currency.format(affordabilityScenario.monthlyNetImpactUSD)}/mo net
+              {affordabilityScenario.paybackMonths !== null
+                ? ` · pays back in ${affordabilityScenario.paybackMonths} mo`
+                : ""}
+            </span>
+          </div>
+        ) : null}
 
         {incentiveMatches.length > 0 ? (
           <ul className="flex flex-col gap-2 text-xs text-black/60 dark:text-white/60">
@@ -260,6 +278,63 @@ export function SuggestionCard({
               <div className="text-lg font-semibold capitalize">{suggestion.category}</div>
             </div>
           </div>
+
+          {affordabilityScenario ? (
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-semibold">Money-wise verdict</h4>
+                <StatusBadge tone={AFFORDABILITY_STATUS_META[affordabilityScenario.status].tone}>
+                  {AFFORDABILITY_STATUS_META[affordabilityScenario.status].label}
+                </StatusBadge>
+              </div>
+              <p className="mb-3 text-xs text-black/50 dark:text-white/50">
+                Based on the utility bill you uploaded, this is how switching actually pencils out.
+              </p>
+              <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Net upfront cost</div>
+                  <div className="font-semibold">{currency.format(affordabilityScenario.netUpfrontCostUSD)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Monthly payment</div>
+                  <div className="font-semibold">{currency.format(affordabilityScenario.monthlyPaymentUSD)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Bill-adjusted savings</div>
+                  <div className="font-semibold text-status-good">
+                    {currency.format(affordabilityScenario.monthlySavingsUSD)}/mo
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Monthly net impact</div>
+                  <div
+                    className={`font-semibold ${affordabilityScenario.monthlyNetImpactUSD >= 0 ? "text-status-good" : ""}`}
+                  >
+                    {currency.format(affordabilityScenario.monthlyNetImpactUSD)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Payback</div>
+                  <div className="font-semibold">
+                    {affordabilityScenario.paybackMonths !== null
+                      ? `${affordabilityScenario.paybackMonths} mo`
+                      : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Affordability score</div>
+                  <div className="font-semibold">{affordabilityScenario.affordabilityScore}/100</div>
+                </div>
+              </div>
+              {affordabilityScenario.flags.length > 0 ? (
+                <ul className="mt-3 flex flex-col gap-1 text-xs text-black/50 dark:text-white/50">
+                  {affordabilityScenario.flags.map((flag) => (
+                    <li key={flag}>• {flag}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
 
           {incentiveMatches.length > 0 ? (
             <div>
