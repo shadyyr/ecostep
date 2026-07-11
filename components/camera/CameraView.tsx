@@ -123,13 +123,15 @@ export function CameraView({ onClose }: CameraViewProps) {
   return (
     <div className="relative flex flex-col gap-4">
       {showManualLink ? (
-        <button
-          type="button"
-          onClick={() => setStep("manual")}
-          className="fixed right-4 bottom-20 z-50 rounded-full bg-brand-900 px-4 py-2.5 text-sm font-medium text-white shadow-lg sm:absolute sm:right-0 sm:bottom-auto sm:-top-1"
-        >
-          Input Details Manually
-        </button>
+        <div className="flex justify-stretch sm:justify-end">
+          <button
+            type="button"
+            onClick={() => setStep("manual")}
+            className="w-full rounded-full bg-brand-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-600 sm:w-auto"
+          >
+            Input Details Manually
+          </button>
+        </div>
       ) : null}
 
       {step === "capture-context" ? (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import type {
   AffordabilityScenario,
   AppliedIncentive,
@@ -89,7 +90,6 @@ export function SuggestionCard({
   anchorId,
 }: SuggestionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
-  const [isRemoving, setIsRemoving] = useState(false);
   const [expandedIncentive, setExpandedIncentive] = useState<string | null>(null);
   const [expandedDocuments, setExpandedDocuments] = useState<string | null>(null);
   const effectivePrice = getEffectivePrice(suggestion);
@@ -114,20 +114,18 @@ export function SuggestionCard({
     ? getPaperworkHours(selectedDocumentsIncentive)
     : null;
 
-  function handleAccept() {
-    if (!suggestion.accepted) {
-      setIsRemoving(true);
-      window.setTimeout(() => onAccept(suggestion.id), 180);
-      return;
-    }
-    onAccept(suggestion.id);
-  }
-
   return (
     <>
+      <motion.div
+        layout
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+      >
       <Card
         id={anchorId}
-        className={`flex flex-col gap-3 transition-all duration-200 ${isRemoving ? "scale-[0.98] opacity-0" : "opacity-100"}`}
+        className="flex flex-col gap-3"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
@@ -245,9 +243,10 @@ export function SuggestionCard({
           <span className="text-xs text-black/40 dark:text-white/40">
             {suggestion.fuelSource} → Electric
           </span>
-          <RejectButton onReject={() => onReject(suggestion.id)} onAccept={handleAccept} />
+          <RejectButton onReject={() => onReject(suggestion.id)} onAccept={() => onAccept(suggestion.id)} />
         </div>
       </Card>
+      </motion.div>
 
       <Modal open={showDetails} onClose={() => setShowDetails(false)} title={suggestion.shortName}>
         <div className="flex flex-col gap-4">

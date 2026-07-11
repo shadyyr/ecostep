@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { RecommendationPreference, Suggestion, UserProfile } from "@/types";
 import { useTheme } from "@/context/ThemeContext";
 import { Modal } from "@/components/ui/Modal";
@@ -259,49 +260,56 @@ export function Settings({
                   No uploaded appliances yet. Scan an appliance to get started.
                 </p>
               ) : (
-                uploadedSuggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.id}
-                    className="grid grid-cols-1 gap-2 rounded-xl border border-black/25 bg-black/[0.04] px-3 py-2 sm:grid-cols-[1fr_1fr_auto] sm:items-center sm:gap-3 dark:border-white/20 dark:bg-white/[0.06]"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-black/85 dark:text-white/80">
-                        Uploaded
-                      </p>
-                      <p className="truncate text-sm font-semibold text-brand-900 dark:text-brand-150">
-                        {suggestion.shortName}
-                      </p>
-                      <p className="text-xs text-black/80 dark:text-white/80">
-                        {suggestion.source === "manual" ? "Manually entered" : "Scanned"}
-                      </p>
-                    </div>
-                    <div className="min-w-0 rounded-lg border border-brand-250/55 bg-brand-50/90 px-2.5 py-2 dark:border-brand-250/30 dark:bg-brand-950/30">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-black/85 dark:text-white/80">
-                        Eco-friendly counterpart
-                      </p>
-                      {getCounterpart(suggestion) ? (
-                        <>
-                          <p className="truncate text-sm font-semibold text-brand-900 dark:text-brand-150">
-                            {getCounterpart(suggestion)?.shortName}
-                          </p>
-                          <p className="text-xs text-black/80 dark:text-white/80">
-                            Potential savings: {`$${getCounterpart(suggestion)?.estimatedMonthlySavingsUSD ?? 0}/mo`}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-xs text-black/80 dark:text-white/80">No counterpart yet</p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onDeleteSuggestion(suggestion.id)}
-                      aria-label={`Delete ${suggestion.shortName}`}
-                      className="justify-self-end rounded-md border border-black/30 px-2 py-1 text-sm text-black/90 transition-colors hover:bg-black/10 hover:text-status-danger dark:border-white/20 dark:text-white/85 dark:hover:bg-white/10 dark:hover:text-status-danger"
+                <AnimatePresence initial={false}>
+                  {uploadedSuggestions.map((suggestion) => (
+                    <motion.div
+                      key={suggestion.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.22, ease: "easeOut" }}
+                      className="grid grid-cols-1 gap-2 rounded-xl border border-black/25 bg-black/[0.04] px-3 py-2 sm:grid-cols-[1fr_1fr_auto] sm:items-center sm:gap-3 dark:border-white/20 dark:bg-white/[0.06]"
                     >
-                      🗑️
-                    </button>
-                  </div>
-                ))
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-black/85 dark:text-white/80">
+                          Uploaded
+                        </p>
+                        <p className="truncate text-sm font-semibold text-brand-900 dark:text-brand-150">
+                          {suggestion.shortName}
+                        </p>
+                        <p className="text-xs text-black/80 dark:text-white/80">
+                          {suggestion.source === "manual" ? "Manually entered" : "Scanned"}
+                        </p>
+                      </div>
+                      <div className="min-w-0 rounded-lg border border-brand-250/55 bg-brand-50/90 px-2.5 py-2 dark:border-brand-250/30 dark:bg-brand-950/30">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-black/85 dark:text-white/80">
+                          Eco-friendly counterpart
+                        </p>
+                        {getCounterpart(suggestion) ? (
+                          <>
+                            <p className="truncate text-sm font-semibold text-brand-900 dark:text-brand-150">
+                              {getCounterpart(suggestion)?.shortName}
+                            </p>
+                            <p className="text-xs text-black/80 dark:text-white/80">
+                              Potential savings: {`$${getCounterpart(suggestion)?.estimatedMonthlySavingsUSD ?? 0}/mo`}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-black/80 dark:text-white/80">No counterpart yet</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteSuggestion(suggestion.id)}
+                        aria-label={`Delete ${suggestion.shortName}`}
+                        className="justify-self-end rounded-md border border-black/30 px-2 py-1 text-sm text-black/90 transition-colors hover:bg-black/10 hover:text-status-danger dark:border-white/20 dark:text-white/85 dark:hover:bg-white/10 dark:hover:text-status-danger"
+                      >
+                        🗑️
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               )}
             </div>
           )}
@@ -321,38 +329,45 @@ export function Settings({
                   >
                     Restore all rejected appliances
                   </button>
-                  {rejectedSuggestions.map((suggestion) => (
-                    <div
-                      key={suggestion.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
-                          {suggestion.shortName}
-                        </p>
-                        <p className="text-xs text-black/45 dark:text-white/45">
-                          {suggestion.category} • {currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onRestoreSuggestion(suggestion.id)}
-                          className="rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-good dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-good"
-                        >
-                          Restore
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDeleteSuggestion(suggestion.id)}
-                          aria-label={`Delete ${suggestion.shortName}`}
-                          className="rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-danger dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-danger"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                  <AnimatePresence initial={false}>
+                    {rejectedSuggestions.map((suggestion) => (
+                      <motion.div
+                        key={suggestion.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.22, ease: "easeOut" }}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
+                            {suggestion.shortName}
+                          </p>
+                          <p className="text-xs text-black/45 dark:text-white/45">
+                            {suggestion.category} • {currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onRestoreSuggestion(suggestion.id)}
+                            className="rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-good dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-good"
+                          >
+                            Restore
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteSuggestion(suggestion.id)}
+                            aria-label={`Delete ${suggestion.shortName}`}
+                            className="rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-danger dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-danger"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </>
               )}
             </div>
