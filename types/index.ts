@@ -7,7 +7,6 @@ export interface UserProfile {
   maxBudgetUSD: number;
   targetBillUSD?: number;
   currentBillUSD?: number;
-  homeSizeSqft?: number;
   homeType?: "house" | "apartment" | "townhouse" | "duplex";
   applianceAgeYears?: number;
 }

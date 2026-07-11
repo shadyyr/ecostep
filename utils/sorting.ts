@@ -39,7 +39,6 @@ function recommendedScore(
   const targetPressure = targetGap > 0 ? Math.min(1.35, 1 + targetGap / 250) : 1;
   const budgetBandPenalty = price > 2500 ? 0.9 : price > 1000 ? 0.95 : 1;
   const confidenceBoost = confidence >= 0.85 ? 1.08 : confidence >= 0.65 ? 1 : 0.9;
-  const sizeMultiplier = profile.homeSizeSqft ? Math.min(1.2, 0.85 + profile.homeSizeSqft / 1600) : 1;
   const ageMultiplier = profile.applianceAgeYears ? Math.min(1.18, 0.95 + profile.applianceAgeYears / 30) : 1;
   const homeTypePenalty = profile.homeType === "apartment" ? 0.92 : profile.homeType === "townhouse" ? 0.97 : 1;
 
@@ -51,7 +50,6 @@ function recommendedScore(
       targetPressure *
       budgetBandPenalty *
       confidenceBoost *
-      sizeMultiplier *
       ageMultiplier *
       homeTypePenalty
   );
@@ -64,7 +62,6 @@ const buildProfileFallback: UserProfile = {
   maxBudgetUSD: 0,
   currentBillUSD: 0,
   targetBillUSD: 0,
-  homeSizeSqft: 0,
   homeType: "house",
   applianceAgeYears: 0,
 };

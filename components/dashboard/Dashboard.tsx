@@ -146,12 +146,12 @@ export function Dashboard() {
           <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/15 dark:bg-white/[0.04]">
             <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Home profile</p>
             <p className="mt-1 text-sm text-black/70 dark:text-white/70">
-              {profile.homeSizeSqft} sqft • {profile.homeType} • {profile.applianceAgeYears} yrs old
+              {profile.homeType} • {profile.applianceAgeYears} yrs old
             </p>
           </div>
         </div>
         <p className="mt-3 text-sm text-black/60 dark:text-white/60">
-          These settings help EcoStep recommend upgrades tailored to your home size, home type, and the age of your appliances.
+          These settings help EcoStep recommend upgrades tailored to your home type and the age of your appliances.
         </p>
       </section>
 

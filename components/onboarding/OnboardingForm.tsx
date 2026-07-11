@@ -16,7 +16,6 @@ export function OnboardingForm() {
   const [maxBudgetUSD] = useState(5000);
   const [currentBillUSD, setCurrentBillUSD] = useState(120);
   const [targetBillUSD, setTargetBillUSD] = useState(95);
-  const [homeSizeSqft, setHomeSizeSqft] = useState(1800);
   const [homeType, setHomeType] = useState<"house" | "apartment" | "townhouse" | "duplex">("house");
   const [applianceAgeYears, setApplianceAgeYears] = useState(10);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +34,6 @@ export function OnboardingForm() {
       maxBudgetUSD,
       currentBillUSD,
       targetBillUSD,
-      homeSizeSqft,
       homeType,
       applianceAgeYears,
     });
@@ -136,33 +134,21 @@ export function OnboardingForm() {
             </label>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm">
-              Home size (sqft)
-              <input
-                type="number"
-                min={0}
-                value={homeSizeSqft}
-                onChange={(e) => setHomeSizeSqft(Number(e.target.value) || 0)}
-                className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Home type
-              <select
-                value={homeType}
-                onChange={(e) =>
-                  setHomeType(e.target.value as "house" | "apartment" | "townhouse" | "duplex")
-                }
-                className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
-              >
-                <option value="house">House</option>
-                <option value="apartment">Apartment</option>
-                <option value="townhouse">Townhouse</option>
-                <option value="duplex">Duplex</option>
-              </select>
-            </label>
-          </div>
+          <label className="flex flex-col gap-1 text-sm">
+            Home type
+            <select
+              value={homeType}
+              onChange={(e) =>
+                setHomeType(e.target.value as "house" | "apartment" | "townhouse" | "duplex")
+              }
+              className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
+            >
+              <option value="house">House</option>
+              <option value="apartment">Apartment</option>
+              <option value="townhouse">Townhouse</option>
+              <option value="duplex">Duplex</option>
+            </select>
+          </label>
 
           <label className="flex flex-col gap-1 text-sm">
             Average appliance age (years)
