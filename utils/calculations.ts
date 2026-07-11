@@ -131,11 +131,15 @@ export function getPersonalizedNextAction(
 ): Suggestion | null {
   const remainingBudget = profile.maxBudgetUSD > 0 ? profile.maxBudgetUSD : Number.POSITIVE_INFINITY;
   const active = suggestions.filter((suggestion) => !suggestion.accepted && !suggestion.rejected);
+  const targetGap =
+    targetBillUSD && targetBillUSD > 0 && profile.currentBillUSD
+      ? Math.max(0, profile.currentBillUSD - targetBillUSD)
+      : 0;
+
   const ranked = active
     .filter((suggestion) => suggestion.priceUSD <= remainingBudget)
     .map((suggestion) => {
       const payback = getPaybackMonths(suggestion) ?? Number.POSITIVE_INFINITY;
-      const targetGap = targetBillUSD && targetBillUSD > 0 ? Math.max(0, targetBillUSD - 0) : 0;
       let score = suggestion.estimatedMonthlySavingsUSD * 10;
       score += suggestion.conversionEfficiencyPct / 2;
       score -= payback * 0.8;
