@@ -95,12 +95,27 @@ export function Settings({
                 </p>
               ) : (
                 uploadedSuggestions.map((suggestion) => (
-                  <SuggestionCard
+                  <div
                     key={suggestion.id}
-                    suggestion={suggestion}
-                    onReject={() => onRejectSuggestion(suggestion.id)}
-                    onAccept={() => onToggleAccepted(suggestion.id)}
-                  />
+                    className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
+                        {suggestion.shortName}
+                      </p>
+                      <p className="text-xs text-black/45 dark:text-white/45">
+                        {suggestion.source === "manual" ? "Manually entered" : "Scanned"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRejectSuggestion(suggestion.id)}
+                      aria-label={`Delete ${suggestion.shortName}`}
+                      className="rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-danger dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-danger"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 ))
               )}
             </div>

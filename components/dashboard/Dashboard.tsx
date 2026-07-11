@@ -49,21 +49,26 @@ export function Dashboard() {
   );
 
   const uploadedSuggestions = useMemo(
-    () => activeSuggestions.filter((s) => !s.accepted),
+    () => activeSuggestions.filter((s) => s.source === "gemini" || s.source === "manual"),
+    [activeSuggestions]
+  );
+
+  const recommendedSuggestions = useMemo(
+    () => activeSuggestions.filter((s) => s.source === "mock" && !s.accepted),
     [activeSuggestions]
   );
 
   const acceptedSuggestions = useMemo(
-    () => activeSuggestions.filter((s) => s.accepted),
+    () => activeSuggestions.filter((s) => s.source === "mock" && s.accepted),
     [activeSuggestions]
   );
 
   const sorted = useMemo(
     () =>
       profile
-        ? sortSuggestionsForProfile(uploadedSuggestions, profile, sortMode, profile.targetBillUSD)
-        : uploadedSuggestions,
-    [uploadedSuggestions, profile, sortMode]
+        ? sortSuggestionsForProfile(recommendedSuggestions, profile, sortMode, profile.targetBillUSD)
+        : recommendedSuggestions,
+    [recommendedSuggestions, profile, sortMode]
   );
 
   const roadmapSteps = useMemo(() => {
@@ -191,10 +196,27 @@ export function Dashboard() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <div>
-          <p className="text-sm text-black/60 dark:text-white/60">
-            View all your uploaded and accepted appliances in Settings.
-          </p>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">Recommended Appliances</h2>
+          <span className="text-xs text-black/50 dark:text-white/50">
+            {sorted.length} to review
+          </span>
+        </div>
+        <SortTabs value={sortMode} onChange={setSortMode} />
+        <div className="flex flex-col gap-3">
+          {sorted.map((suggestion) => (
+            <SuggestionCard
+              key={suggestion.id}
+              suggestion={suggestion}
+              onReject={rejectSuggestion}
+              onAccept={toggleAccepted}
+            />
+          ))}
+          {sorted.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-black/10 p-6 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
+              No appliances to review. Scan an appliance to get started.
+            </p>
+          ) : null}
         </div>
       </section>
 
