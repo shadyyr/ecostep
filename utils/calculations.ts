@@ -1,6 +1,8 @@
 import {
   CATEGORY_PRICE_MAP,
   CATEGORY_TIER_MAP,
+  CATEGORY_SHORT_NAME_MAP,
+  CATEGORY_DESCRIPTION_MAP,
   DEFAULT_PRICE_USD,
   DEFAULT_TIER,
   FUEL_EFFICIENCY_GAIN_MAP,
@@ -133,12 +135,16 @@ export function auditResultToSuggestion(
   const priceUSD = CATEGORY_PRICE_MAP[category] ?? DEFAULT_PRICE_USD;
   const conversionEfficiencyPct =
     FUEL_EFFICIENCY_GAIN_MAP[fuelSource] ?? DEFAULT_EFFICIENCY_GAIN_PCT;
+  const shortName = CATEGORY_SHORT_NAME_MAP[category] ?? audit.detectedCategory;
+  const description = CATEGORY_DESCRIPTION_MAP[category] ?? "This upgrade will help you save energy and reduce your carbon footprint.";
 
   const base: Suggestion = {
     id: generateId(),
     tier,
     category,
     title: `Upgrade your ${audit.detectedCategory} (${audit.fuelSource}) to a high-efficiency electric alternative`,
+    shortName,
+    description,
     fuelSource: audit.fuelSource,
     priceUSD,
     estimatedMonthlySavingsUSD: Math.max(0, audit.estimatedMonthlySavingsUSD),

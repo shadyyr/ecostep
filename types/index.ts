@@ -15,6 +15,8 @@ export interface Suggestion {
   id: string;
   tier: Tier;
   title: string;
+  shortName: string;
+  description: string;
   category: string;
   fuelSource: string;
   priceUSD: number;
