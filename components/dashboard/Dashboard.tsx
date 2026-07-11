@@ -68,12 +68,13 @@ export function Dashboard() {
   );
 
   const completedSteps = activeSuggestions.filter((suggestion) => suggestion.applied).length;
+  const totalPlannedSteps = Math.max(1, activeSuggestions.filter((suggestion) => !suggestion.rejected).length);
   const roadmapSavings = roadmapSteps.reduce(
     (sum, step) => sum + step.suggestion.estimatedMonthlySavingsUSD,
     0
   );
   const roadmapCost = roadmapSteps.reduce((sum, step) => sum + step.suggestion.priceUSD, 0);
-  const progressPercent = Math.min(100, Math.round((completedSteps / Math.max(1, roadmapSteps.length)) * 100));
+  const progressPercent = Math.min(100, Math.round((completedSteps / Math.max(1, totalPlannedSteps)) * 100));
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
@@ -104,7 +105,10 @@ export function Dashboard() {
 
         {nextAction ? (
           <div className="mt-3 rounded-xl border border-brand-250/40 bg-brand-50/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-950/35 dark:text-brand-150">
-            Best next action: {nextAction.title}
+            <p className="font-semibold">Best next action: {nextAction.title}</p>
+            <p className="mt-1 text-xs text-black/60 dark:text-white/60">
+              This is the upgrade most likely to move your home closer to your target bill and preferences.
+            </p>
           </div>
         ) : null}
 
@@ -126,6 +130,9 @@ export function Dashboard() {
         <div className="mt-3 h-2 rounded-full bg-black/5 dark:bg-white/10">
           <div className="h-2 rounded-full bg-brand-600" style={{ width: `${progressPercent}%` }} />
         </div>
+        <p className="mt-2 text-xs text-black/50 dark:text-white/50">
+          You are {progressPercent}% of the way through your current plan. Marking a step as done updates your momentum.
+        </p>
 
         <div className="mt-3 flex flex-col gap-2">
           {roadmapSteps.length > 0 ? (
@@ -171,6 +178,8 @@ export function Dashboard() {
               suggestion={suggestion}
               onReject={rejectSuggestion}
               onToggleApplied={toggleApplied}
+              profile={profile}
+              allSuggestions={activeSuggestions}
             />
           ))}
           {sorted.length === 0 ? (

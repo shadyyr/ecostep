@@ -85,6 +85,43 @@ export function getPaybackMonths(suggestion: Suggestion): number | null {
   return Math.max(1, Math.round(effectivePrice / monthlySavings));
 }
 
+const BUNDLE_PAIRS: Record<string, string[]> = {
+  thermostat: ["hvac"],
+  hvac: ["thermostat"],
+  "water heater": ["insulation"],
+  insulation: ["water heater"],
+};
+
+function getBundlePartner(suggestion: Suggestion, allSuggestions: Suggestion[] = []): string | null {
+  const partners = BUNDLE_PAIRS[suggestion.category.toLowerCase()] ?? [];
+  const match = allSuggestions.find((other) =>
+    other.id !== suggestion.id && partners.includes(other.category.toLowerCase())
+  );
+  return match?.title ?? null;
+}
+
+export function getSuggestionInsight(
+  suggestion: Suggestion,
+  profile: UserProfile,
+  allSuggestions: Suggestion[] = []
+): string {
+  const payback = getPaybackMonths(suggestion) ?? Number.POSITIVE_INFINITY;
+  const budgetFit = suggestion.priceUSD <= profile.maxBudgetUSD ? "fits your budget" : "exceeds your current budget";
+  const impactLevel = suggestion.conversionEfficiencyPct >= 70 ? "strong" : suggestion.conversionEfficiencyPct >= 40 ? "solid" : "moderate";
+  const preferenceLabel = profile.preference === "impact"
+    ? "impact"
+    : profile.preference === "budget"
+      ? "budget"
+      : profile.preference === "speed"
+        ? "speed"
+        : "savings";
+  const bundlePartner = getBundlePartner(suggestion, allSuggestions);
+  const bundleText = bundlePartner ? ` It also pairs well with ${bundlePartner}.` : "";
+  const targetHint = profile.targetBillUSD && profile.targetBillUSD > 0 ? " and helps move you closer to your target bill" : "";
+
+  return `A ${impactLevel} ${preferenceLabel} fit with ${budgetFit}${targetHint}, delivering strong monthly savings and about ${payback} months to break even.${bundleText}`;
+}
+
 export function getPersonalizedNextAction(
   suggestions: Suggestion[],
   profile: UserProfile,

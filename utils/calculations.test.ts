@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { simulateTargetBill, calculateEcoScore, auditResultToSuggestion } from '@/utils/calculations';
+import {
+  simulateTargetBill,
+  calculateEcoScore,
+  auditResultToSuggestion,
+  getSuggestionInsight,
+} from '@/utils/calculations';
 import { getMatchingIncentives } from '@/utils/incentives';
+import { sortSuggestionsForProfile } from '@/utils/sorting';
 import type { AuditResult, Suggestion, UserProfile } from '@/types';
 
 describe('normalize and scoring logic', () => {
@@ -91,5 +97,73 @@ describe('normalize and scoring logic', () => {
   it('matches incentives by category and zip for richer regional logic', () => {
     const matches = getMatchingIncentives('Water Heater', '98105');
     expect(matches.some((entry) => entry.incentiveName.includes('Heat Pump'))).toBe(true);
+  });
+
+  it('builds a short explanation for why a suggestion is a strong fit', () => {
+    const profile: UserProfile = { zipCode: '98101', hasSolar: false, preference: 'impact', maxBudgetUSD: 5000 };
+    const suggestion: Suggestion = {
+      id: 'insight-1',
+      tier: 2,
+      title: 'Heat pump water heater',
+      category: 'water heater',
+      fuelSource: 'Natural Gas',
+      priceUSD: 2500,
+      estimatedMonthlySavingsUSD: 45,
+      conversionEfficiencyPct: 70,
+      rejected: false,
+      applied: false,
+      appliedIncentives: [],
+      source: 'mock',
+      createdAt: 'now',
+    };
+
+    const insight = getSuggestionInsight(suggestion, profile);
+    expect(insight).toContain('impact');
+    expect(insight).toContain('savings');
+  });
+
+  it('prefers budget-friendly suggestions when the user has a tight budget and bill target', () => {
+    const profile: UserProfile = {
+      zipCode: '98101',
+      hasSolar: false,
+      preference: 'budget',
+      maxBudgetUSD: 1000,
+      targetBillUSD: 80,
+    };
+    const suggestions: Suggestion[] = [
+      {
+        id: 'expensive',
+        tier: 3,
+        title: 'Premium upgrade',
+        category: 'hvac',
+        fuelSource: 'Electricity',
+        priceUSD: 2400,
+        estimatedMonthlySavingsUSD: 60,
+        conversionEfficiencyPct: 80,
+        rejected: false,
+        applied: false,
+        appliedIncentives: [],
+        source: 'mock',
+        createdAt: 'now',
+      },
+      {
+        id: 'budget',
+        tier: 1,
+        title: 'Budget upgrade',
+        category: 'thermostat',
+        fuelSource: 'Electricity',
+        priceUSD: 250,
+        estimatedMonthlySavingsUSD: 25,
+        conversionEfficiencyPct: 35,
+        rejected: false,
+        applied: false,
+        appliedIncentives: [],
+        source: 'mock',
+        createdAt: 'now',
+      },
+    ];
+
+    const sorted = sortSuggestionsForProfile(suggestions, profile, 'recommended', profile.targetBillUSD);
+    expect(sorted[0].id).toBe('budget');
   });
 });
