@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { RecommendationPreference, Suggestion, UserProfile } from "@/types";
 import { useTheme } from "@/context/ThemeContext";
 import { Modal } from "@/components/ui/Modal";
@@ -240,29 +241,36 @@ export function Settings({
                   No uploaded appliances yet. Scan an appliance to get started.
                 </p>
               ) : (
-                uploadedSuggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
-                        {suggestion.shortName}
-                      </p>
-                      <p className="text-xs text-black/45 dark:text-white/45">
-                        {suggestion.source === "manual" ? "Manually entered" : "Scanned"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onRejectSuggestion(suggestion.id)}
-                      aria-label={`Delete ${suggestion.shortName}`}
-                      className="rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-danger dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-danger"
+                <AnimatePresence initial={false}>
+                  {uploadedSuggestions.map((suggestion) => (
+                    <motion.div
+                      key={suggestion.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.22, ease: "easeOut" }}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
                     >
-                      🗑️
-                    </button>
-                  </div>
-                ))
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
+                          {suggestion.shortName}
+                        </p>
+                        <p className="text-xs text-black/45 dark:text-white/45">
+                          {suggestion.source === "manual" ? "Manually entered" : "Scanned"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onRejectSuggestion(suggestion.id)}
+                        aria-label={`Delete ${suggestion.shortName}`}
+                        className="rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-danger dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-danger"
+                      >
+                        🗑️
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               )}
             </div>
           )}
@@ -282,28 +290,35 @@ export function Settings({
                   >
                     Restore all rejected appliances
                   </button>
-                  {rejectedSuggestions.map((suggestion) => (
-                    <div
-                      key={suggestion.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
-                          {suggestion.shortName}
-                        </p>
-                        <p className="text-xs text-black/45 dark:text-white/45">
-                          {suggestion.category} • {currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => onRestoreSuggestion(suggestion.id)}
-                        className="shrink-0 rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-good dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-good"
+                  <AnimatePresence initial={false}>
+                    {rejectedSuggestions.map((suggestion) => (
+                      <motion.div
+                        key={suggestion.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.22, ease: "easeOut" }}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
                       >
-                        Restore
-                      </button>
-                    </div>
-                  ))}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
+                            {suggestion.shortName}
+                          </p>
+                          <p className="text-xs text-black/45 dark:text-white/45">
+                            {suggestion.category} • {currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onRestoreSuggestion(suggestion.id)}
+                          className="shrink-0 rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-good dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-good"
+                        >
+                          Restore
+                        </button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </>
               )}
             </div>
