@@ -75,6 +75,7 @@ interface SuggestionCardProps {
   allSuggestions?: Suggestion[];
   incentiveInsight?: SuggestionIncentiveInsight;
   affordabilityScenario?: AffordabilityScenario;
+  anchorId?: string;
 }
 
 export function SuggestionCard({
@@ -85,6 +86,7 @@ export function SuggestionCard({
   allSuggestions,
   incentiveInsight,
   affordabilityScenario,
+  anchorId,
 }: SuggestionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -124,6 +126,7 @@ export function SuggestionCard({
   return (
     <>
       <Card
+        id={anchorId}
         className={`flex flex-col gap-3 transition-all duration-200 ${isRemoving ? "scale-[0.98] opacity-0" : "opacity-100"}`}
       >
         <div className="flex items-start justify-between gap-3">

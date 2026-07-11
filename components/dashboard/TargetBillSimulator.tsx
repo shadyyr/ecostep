@@ -17,25 +17,30 @@ interface TargetBillSimulatorProps {
   profile?: UserProfile | null;
 }
 
+function normalizeOnBlur(value: string, setter: (value: string) => void) {
+  const parsed = Number(value);
+  setter(value.trim() === "" || !Number.isFinite(parsed) ? "0" : String(parsed));
+}
+
 export function TargetBillSimulator({ profile }: TargetBillSimulatorProps) {
   const { activeSuggestions } = useAppState();
-  const [currentBill, setCurrentBill] = useState(profile?.currentBillUSD ?? 100);
-  const [targetBill, setTargetBill] = useState(profile?.targetBillUSD ?? 75);
+  const [currentBill, setCurrentBill] = useState(String(profile?.currentBillUSD ?? 100));
+  const [targetBill, setTargetBill] = useState(String(profile?.targetBillUSD ?? 75));
   const [syncedProfile, setSyncedProfile] = useState(profile);
 
   if (profile !== syncedProfile) {
     setSyncedProfile(profile);
     if (profile) {
-      setCurrentBill(profile.currentBillUSD ?? currentBill);
-      setTargetBill(profile.targetBillUSD ?? targetBill);
+      if (profile.currentBillUSD !== undefined) setCurrentBill(String(profile.currentBillUSD));
+      if (profile.targetBillUSD !== undefined) setTargetBill(String(profile.targetBillUSD));
     }
   }
 
   const result = useMemo(
     () =>
       simulateTargetBill(
-        currentBill,
-        targetBill,
+        Number(currentBill) || 0,
+        Number(targetBill) || 0,
         activeSuggestions.filter((s) => !s.accepted)
       ),
     [currentBill, targetBill, activeSuggestions]
@@ -56,8 +61,10 @@ export function TargetBillSimulator({ profile }: TargetBillSimulatorProps) {
           <input
             type="number"
             min={0}
+            step="any"
             value={currentBill}
-            onChange={(e) => setCurrentBill(Number(e.target.value) || 0)}
+            onChange={(e) => setCurrentBill(e.target.value)}
+            onBlur={(e) => normalizeOnBlur(e.target.value, setCurrentBill)}
             className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
           />
         </label>
@@ -66,8 +73,10 @@ export function TargetBillSimulator({ profile }: TargetBillSimulatorProps) {
           <input
             type="number"
             min={0}
+            step="any"
             value={targetBill}
-            onChange={(e) => setTargetBill(Number(e.target.value) || 0)}
+            onChange={(e) => setTargetBill(e.target.value)}
+            onBlur={(e) => normalizeOnBlur(e.target.value, setTargetBill)}
             className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
           />
         </label>

@@ -14,12 +14,15 @@ export function OnboardingForm() {
   const [hasSolar, setHasSolar] = useState(false);
   const [preference, setPreference] = useState<RecommendationPreference>("savings");
   const [maxBudgetUSD] = useState(5000);
-  const [currentBillUSD, setCurrentBillUSD] = useState(120);
-  const [targetBillUSD, setTargetBillUSD] = useState(95);
-  const [homeSizeSqft, setHomeSizeSqft] = useState(1800);
+  const [currentBillUSD, setCurrentBillUSD] = useState("120");
+  const [targetBillUSD, setTargetBillUSD] = useState("95");
   const [homeType, setHomeType] = useState<"house" | "apartment" | "townhouse" | "duplex">("house");
-  const [applianceAgeYears, setApplianceAgeYears] = useState(10);
   const [error, setError] = useState<string | null>(null);
+
+  function normalizeOnBlur(value: string, setter: (value: string) => void) {
+    const parsed = Number(value);
+    setter(value.trim() === "" || !Number.isFinite(parsed) ? "0" : String(parsed));
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -33,11 +36,9 @@ export function OnboardingForm() {
       hasSolar,
       preference,
       maxBudgetUSD,
-      currentBillUSD,
-      targetBillUSD,
-      homeSizeSqft,
+      currentBillUSD: Number(currentBillUSD) || 0,
+      targetBillUSD: Number(targetBillUSD) || 0,
       homeType,
-      applianceAgeYears,
     });
   }
 
@@ -101,12 +102,20 @@ export function OnboardingForm() {
             <select
               value={preference}
               onChange={(e) => setPreference(e.target.value as RecommendationPreference)}
-              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
+              className="w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
             >
-              <option value="savings">Highest savings</option>
-              <option value="budget">Lowest upfront cost</option>
-              <option value="impact">Biggest carbon impact</option>
-              <option value="speed">Fastest payoff</option>
+              <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="savings">
+                Highest savings
+              </option>
+              <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="budget">
+                Lowest upfront cost
+              </option>
+              <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="impact">
+                Biggest carbon impact
+              </option>
+              <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="speed">
+                Fastest payoff
+              </option>
             </select>
           </div>
 
@@ -116,8 +125,10 @@ export function OnboardingForm() {
               <input
                 type="number"
                 min={0}
+                step="any"
                 value={currentBillUSD}
-                onChange={(e) => setCurrentBillUSD(Number(e.target.value) || 0)}
+                onChange={(e) => setCurrentBillUSD(e.target.value)}
+                onBlur={(e) => normalizeOnBlur(e.target.value, setCurrentBillUSD)}
                 className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
               />
             </label>
@@ -126,53 +137,37 @@ export function OnboardingForm() {
               <input
                 type="number"
                 min={0}
+                step="any"
                 value={targetBillUSD}
-                onChange={(e) => setTargetBillUSD(Number(e.target.value) || 0)}
+                onChange={(e) => setTargetBillUSD(e.target.value)}
+                onBlur={(e) => normalizeOnBlur(e.target.value, setTargetBillUSD)}
                 className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
               />
-              <span className="text-xs text-black/50 dark:text-white/50">
-                Helps EcoStep prioritize the actions that move you closest to your goal.
-              </span>
-            </label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm">
-              Home size (sqft)
-              <input
-                type="number"
-                min={0}
-                value={homeSizeSqft}
-                onChange={(e) => setHomeSizeSqft(Number(e.target.value) || 0)}
-                className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Home type
-              <select
-                value={homeType}
-                onChange={(e) =>
-                  setHomeType(e.target.value as "house" | "apartment" | "townhouse" | "duplex")
-                }
-                className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
-              >
-                <option value="house">House</option>
-                <option value="apartment">Apartment</option>
-                <option value="townhouse">Townhouse</option>
-                <option value="duplex">Duplex</option>
-              </select>
             </label>
           </div>
 
           <label className="flex flex-col gap-1 text-sm">
-            Average appliance age (years)
-            <input
-              type="number"
-              min={0}
-              value={applianceAgeYears}
-              onChange={(e) => setApplianceAgeYears(Number(e.target.value) || 0)}
-              className="rounded-lg border border-black/10 px-3 py-2 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20"
-            />
+            Home type
+            <select
+              value={homeType}
+              onChange={(e) =>
+                setHomeType(e.target.value as "house" | "apartment" | "townhouse" | "duplex")
+              }
+              className="rounded-lg border border-black/10 bg-white px-3 py-2 text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
+            >
+              <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="house">
+                House
+              </option>
+              <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="apartment">
+                Apartment
+              </option>
+              <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="townhouse">
+                Townhouse
+              </option>
+              <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="duplex">
+                Duplex
+              </option>
+            </select>
           </label>
 
           <div className="rounded-lg border border-black/10 bg-black/[0.03] p-3 text-sm text-black/60 dark:border-white/15 dark:bg-white/5 dark:text-white/60">

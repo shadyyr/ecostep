@@ -5,6 +5,12 @@ import type { RecommendationPreference, Suggestion, UserProfile } from "@/types"
 import { useTheme } from "@/context/ThemeContext";
 import { Modal } from "@/components/ui/Modal";
 
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
 interface SettingsProps {
   open: boolean;
   onClose: () => void;
@@ -13,10 +19,17 @@ interface SettingsProps {
   rejectedSuggestions: Suggestion[];
   counterpartSuggestions: Suggestion[];
   onDeleteSuggestion: (id: string) => void;
+  onRestoreSuggestion: (id: string) => void;
+  onRestoreRejectedSuggestions: () => void;
   onUpdateProfile: (profile: UserProfile) => void;
 }
 
 type SettingsTab = "display" | "homeProfile" | "uploaded" | "rejected";
+
+function normalizeOnBlur(value: string, setter: (value: string) => void) {
+  const parsed = Number(value);
+  setter(value.trim() === "" || !Number.isFinite(parsed) ? "0" : String(parsed));
+}
 
 export function Settings({
   open,
@@ -26,6 +39,8 @@ export function Settings({
   rejectedSuggestions,
   counterpartSuggestions,
   onDeleteSuggestion,
+  onRestoreSuggestion,
+  onRestoreRejectedSuggestions,
   onUpdateProfile,
 }: SettingsProps) {
   const { colorScheme, setColorScheme } = useTheme();
@@ -33,11 +48,9 @@ export function Settings({
   const [zipCode, setZipCode] = useState(profile.zipCode);
   const [hasSolar, setHasSolar] = useState(profile.hasSolar);
   const [preference, setPreference] = useState<RecommendationPreference>(profile.preference);
-  const [currentBillUSD, setCurrentBillUSD] = useState(profile.currentBillUSD ?? 0);
-  const [targetBillUSD, setTargetBillUSD] = useState(profile.targetBillUSD ?? 0);
-  const [homeSizeSqft, setHomeSizeSqft] = useState(profile.homeSizeSqft ?? 0);
+  const [currentBillUSD, setCurrentBillUSD] = useState(String(profile.currentBillUSD ?? 0));
+  const [targetBillUSD, setTargetBillUSD] = useState(String(profile.targetBillUSD ?? 0));
   const [homeType, setHomeType] = useState<UserProfile["homeType"]>(profile.homeType ?? "house");
-  const [applianceAgeYears, setApplianceAgeYears] = useState(profile.applianceAgeYears ?? 0);
 
   function getCounterpart(uploaded: Suggestion): Suggestion | null {
     const uploadedCategory = uploaded.category.trim().toLowerCase();
@@ -54,35 +67,11 @@ export function Settings({
     );
   }
 
-  function renderTrashRow(suggestion: Suggestion, subtitle: string) {
-    return (
-      <div
-        key={suggestion.id}
-        className="flex items-center justify-between gap-3 rounded-xl border border-black/25 bg-black/[0.04] px-3 py-2 dark:border-white/20 dark:bg-white/[0.06]"
-      >
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-brand-900 dark:text-brand-150">
-            {suggestion.shortName}
-          </p>
-          <p className="text-xs text-black/80 dark:text-white/80">{subtitle}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => onDeleteSuggestion(suggestion.id)}
-          aria-label={`Delete ${suggestion.shortName}`}
-          className="rounded-md border border-black/30 px-2 py-1 text-sm text-black/90 transition-colors hover:bg-black/10 hover:text-status-danger dark:border-white/20 dark:text-white/85 dark:hover:bg-white/10 dark:hover:text-status-danger"
-        >
-          🗑️
-        </button>
-      </div>
-    );
-  }
-
   const tabs: Array<{ id: SettingsTab; label: string; count?: number }> = [
     { id: "display", label: "Display" },
     { id: "homeProfile", label: "Home Profile" },
     { id: "uploaded", label: "Uploaded Appliances", count: uploadedSuggestions.length },
-    { id: "rejected", label: "Rejected Appliances", count: rejectedSuggestions.length },
+    { id: "rejected", label: "Rejected", count: rejectedSuggestions.length },
   ];
 
   return (
@@ -91,7 +80,7 @@ export function Settings({
         <div
           role="tablist"
           aria-label="Settings tabs"
-          className="flex flex-wrap gap-2 border-b border-black/20 pb-2 dark:border-white/20"
+          className="flex flex-wrap gap-2 border-b border-black/10 dark:border-white/10"
         >
           {tabs.map((tab) => (
             <button
@@ -141,14 +130,14 @@ export function Settings({
           )}
 
           {activeTab === "homeProfile" && (
-            <div className="rounded-xl border border-black/25 bg-black/[0.04] p-3 dark:border-white/20 dark:bg-white/[0.06]">
-              <h3 className="text-sm font-semibold text-black dark:text-white">Home Profile</h3>
-              <p className="mt-1 text-xs text-black/85 dark:text-white/80">
-                Update your home details to improve recommendations.
+            <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/[0.04]">
+              <h3 className="text-sm font-semibold">Home Profile</h3>
+              <p className="mt-1 text-xs text-black/50 dark:text-white/50">
+                Update your details to improve recommendations.
               </p>
 
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="flex flex-col gap-1 text-sm text-black dark:text-white">
+                <label className="flex flex-col gap-1 text-sm">
                   Zip code
                   <input
                     type="text"
@@ -156,81 +145,81 @@ export function Settings({
                     maxLength={5}
                     value={zipCode}
                     onChange={(e) => setZipCode(e.target.value.replace(/\D/g, ""))}
-                    className="rounded-lg border border-black/35 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/25 dark:bg-black/20 dark:text-white"
+                    className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm text-black dark:text-white">
+                <label className="flex flex-col gap-1 text-sm">
                   Home type
                   <select
                     value={homeType}
                     onChange={(e) =>
                       setHomeType(e.target.value as "house" | "apartment" | "townhouse" | "duplex")
                     }
-                    className="rounded-lg border border-black/35 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/25 dark:bg-black/20 dark:text-white"
+                    className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
                   >
-                    <option value="house">House</option>
-                    <option value="apartment">Apartment</option>
-                    <option value="townhouse">Townhouse</option>
-                    <option value="duplex">Duplex</option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="house">
+                      House
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="apartment">
+                      Apartment
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="townhouse">
+                      Townhouse
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="duplex">
+                      Duplex
+                    </option>
                   </select>
                 </label>
-                <label className="flex flex-col gap-1 text-sm text-black dark:text-white">
+                <label className="flex flex-col gap-1 text-sm">
                   Current monthly bill
                   <input
                     type="number"
                     min={0}
+                    step="any"
                     value={currentBillUSD}
-                    onChange={(e) => setCurrentBillUSD(Number(e.target.value) || 0)}
-                    className="rounded-lg border border-black/35 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/25 dark:bg-black/20 dark:text-white"
+                    onChange={(e) => setCurrentBillUSD(e.target.value)}
+                    onBlur={(e) => normalizeOnBlur(e.target.value, setCurrentBillUSD)}
+                    className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm text-black dark:text-white">
+                <label className="flex flex-col gap-1 text-sm">
                   Target monthly bill
                   <input
                     type="number"
                     min={0}
+                    step="any"
                     value={targetBillUSD}
-                    onChange={(e) => setTargetBillUSD(Number(e.target.value) || 0)}
-                    className="rounded-lg border border-black/35 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/25 dark:bg-black/20 dark:text-white"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-black dark:text-white">
-                  Home size (sqft)
-                  <input
-                    type="number"
-                    min={0}
-                    value={homeSizeSqft}
-                    onChange={(e) => setHomeSizeSqft(Number(e.target.value) || 0)}
-                    className="rounded-lg border border-black/35 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/25 dark:bg-black/20 dark:text-white"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-black dark:text-white">
-                  Appliance age (years)
-                  <input
-                    type="number"
-                    min={0}
-                    value={applianceAgeYears}
-                    onChange={(e) => setApplianceAgeYears(Number(e.target.value) || 0)}
-                    className="rounded-lg border border-black/35 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/25 dark:bg-black/20 dark:text-white"
+                    onChange={(e) => setTargetBillUSD(e.target.value)}
+                    onBlur={(e) => normalizeOnBlur(e.target.value, setTargetBillUSD)}
+                    className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
                   />
                 </label>
               </div>
 
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="flex flex-col gap-1 text-sm text-black dark:text-white">
+                <label className="flex flex-col gap-1 text-sm">
                   Recommendation priority
                   <select
                     value={preference}
                     onChange={(e) => setPreference(e.target.value as RecommendationPreference)}
-                    className="rounded-lg border border-black/35 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/25 dark:bg-black/20 dark:text-white"
+                    className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-black outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-250 dark:border-white/15 dark:bg-black/20 dark:text-white"
                   >
-                    <option value="savings">Highest savings</option>
-                    <option value="budget">Lowest upfront cost</option>
-                    <option value="impact">Biggest carbon impact</option>
-                    <option value="speed">Fastest payoff</option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="savings">
+                      Highest savings
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="budget">
+                      Lowest upfront cost
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="impact">
+                      Biggest carbon impact
+                    </option>
+                    <option className="bg-white text-black dark:bg-[#111814] dark:text-white" value="speed">
+                      Fastest payoff
+                    </option>
                   </select>
                 </label>
-                <label className="mt-6 flex items-center gap-2 text-sm font-medium text-black dark:text-white sm:mt-0">
+                <label className="mt-6 flex items-center gap-2 text-sm font-medium sm:mt-0">
                   <input
                     type="checkbox"
                     checked={hasSolar}
@@ -250,11 +239,9 @@ export function Settings({
                       zipCode,
                       hasSolar,
                       preference,
-                      currentBillUSD,
-                      targetBillUSD,
-                      homeSizeSqft,
+                      currentBillUSD: Number(currentBillUSD) || 0,
+                      targetBillUSD: Number(targetBillUSD) || 0,
                       homeType,
-                      applianceAgeYears,
                     })
                   }
                   className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-900"
@@ -322,11 +309,51 @@ export function Settings({
           {activeTab === "rejected" && (
             <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto">
               {rejectedSuggestions.length === 0 ? (
-                <p className="text-sm text-black/85 dark:text-white/80">No rejected appliances yet.</p>
+                <p className="text-sm text-black/50 dark:text-white/50">
+                  No rejected appliances right now.
+                </p>
               ) : (
-                rejectedSuggestions.map((suggestion) =>
-                  renderTrashRow(suggestion, "Rejected appliance")
-                )
+                <>
+                  <button
+                    type="button"
+                    onClick={onRestoreRejectedSuggestions}
+                    className="w-fit rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-900"
+                  >
+                    Restore all rejected appliances
+                  </button>
+                  {rejectedSuggestions.map((suggestion) => (
+                    <div
+                      key={suggestion.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
+                          {suggestion.shortName}
+                        </p>
+                        <p className="text-xs text-black/45 dark:text-white/45">
+                          {suggestion.category} • {currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onRestoreSuggestion(suggestion.id)}
+                          className="rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-good dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-good"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteSuggestion(suggestion.id)}
+                          aria-label={`Delete ${suggestion.shortName}`}
+                          className="rounded-md border border-black/10 px-2 py-1 text-sm text-black/60 transition-colors hover:bg-black/5 hover:text-status-danger dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-status-danger"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           )}
