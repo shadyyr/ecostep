@@ -111,7 +111,29 @@ export function Dashboard() {
         />
       ) : null}
 
-      <TargetBillSimulator />
+      <section className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/15 dark:bg-white/[0.04]">
+            <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Current bill</p>
+            <p className="mt-1 text-lg font-semibold">{currency.format(profile.currentBillUSD ?? 0)}</p>
+          </div>
+          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/15 dark:bg-white/[0.04]">
+            <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Target bill</p>
+            <p className="mt-1 text-lg font-semibold">{currency.format(profile.targetBillUSD ?? 0)}</p>
+          </div>
+          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/15 dark:bg-white/[0.04]">
+            <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Home profile</p>
+            <p className="mt-1 text-sm text-black/70 dark:text-white/70">
+              {profile.homeSizeSqft} sqft • {profile.homeType} • {profile.applianceAgeYears} yrs old
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-sm text-black/60 dark:text-white/60">
+          These settings help EcoStep recommend upgrades tailored to your home size, home type, and the age of your appliances.
+        </p>
+      </section>
+
+      <TargetBillSimulator profile={profile} />
 
       <section className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
         <h2 className="text-base font-semibold">Step-by-step roadmap</h2>

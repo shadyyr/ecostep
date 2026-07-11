@@ -6,6 +6,10 @@ export interface UserProfile {
   preference: RecommendationPreference;
   maxBudgetUSD: number;
   targetBillUSD?: number;
+  currentBillUSD?: number;
+  homeSizeSqft?: number;
+  homeType?: "house" | "apartment" | "townhouse" | "duplex";
+  applianceAgeYears?: number;
 }
 
 export type Tier = 1 | 2 | 3;

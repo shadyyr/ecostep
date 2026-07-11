@@ -22,6 +22,7 @@ function getBundleBoost(suggestion: Suggestion, list: Suggestion[]): number {
 function recommendedScore(
   suggestion: Suggestion,
   preference: RecommendationPreference,
+  profile: UserProfile,
   list: Suggestion[],
   targetBillUSD?: number
 ): number {
@@ -34,9 +35,13 @@ function recommendedScore(
   const budgetWeight = preference === "budget" ? 1 : 0.4;
   const impactWeight = preference === "impact" ? 1 : 0.3;
   const speedWeight = preference === "speed" ? 1 : 0.25;
-  const targetPressure = targetBillUSD && targetBillUSD > 0 ? Math.min(1.2, 1 + targetBillUSD / 500) : 1;
+  const targetGap = profile.currentBillUSD && targetBillUSD ? Math.max(0, profile.currentBillUSD - targetBillUSD) : 0;
+  const targetPressure = targetGap > 0 ? Math.min(1.35, 1 + targetGap / 250) : 1;
   const budgetBandPenalty = price > 2500 ? 0.9 : price > 1000 ? 0.95 : 1;
   const confidenceBoost = confidence >= 0.85 ? 1.08 : confidence >= 0.65 ? 1 : 0.9;
+  const sizeMultiplier = profile.homeSizeSqft ? Math.min(1.2, 0.85 + profile.homeSizeSqft / 1600) : 1;
+  const ageMultiplier = profile.applianceAgeYears ? Math.min(1.18, 0.95 + profile.applianceAgeYears / 30) : 1;
+  const homeTypePenalty = profile.homeType === "apartment" ? 0.92 : profile.homeType === "townhouse" ? 0.97 : 1;
 
   return (
     ((roi * speedWeight + efficiency * impactWeight + (annualSavings / 1000) * savingsWeight) *
@@ -45,12 +50,30 @@ function recommendedScore(
       getBundleBoost(suggestion, list) *
       targetPressure *
       budgetBandPenalty *
-      confidenceBoost
+      confidenceBoost *
+      sizeMultiplier *
+      ageMultiplier *
+      homeTypePenalty
   );
 }
 
+const buildProfileFallback: UserProfile = {
+  zipCode: "00000",
+  hasSolar: false,
+  preference: "savings",
+  maxBudgetUSD: 0,
+  currentBillUSD: 0,
+  targetBillUSD: 0,
+  homeSizeSqft: 0,
+  homeType: "house",
+  applianceAgeYears: 0,
+};
+
 export const sortRecommended: SortFn = (list) =>
-  [...list].sort((a, b) => recommendedScore(b, "savings", list) - recommendedScore(a, "savings", list));
+  [...list].sort((a, b) =>
+    recommendedScore(b, "savings", buildProfileFallback, list) -
+    recommendedScore(a, "savings", buildProfileFallback, list)
+  );
 
 export const sortPriceLowHigh: SortFn = (list) =>
   [...list].sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
@@ -89,7 +112,7 @@ export function sortSuggestionsForProfile(
   return [...list]
     .filter((suggestion) => suggestion.priceUSD <= profile.maxBudgetUSD || profile.maxBudgetUSD <= 0)
     .sort((a, b) =>
-      recommendedScore(b, profile.preference, list, targetBillUSD) -
-      recommendedScore(a, profile.preference, list, targetBillUSD)
+      recommendedScore(b, profile.preference, profile, list, targetBillUSD) -
+      recommendedScore(a, profile.preference, profile, list, targetBillUSD)
     );
 }
