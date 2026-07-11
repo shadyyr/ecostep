@@ -75,7 +75,7 @@ export function SuggestionCard({ suggestion, onReject, onToggleApplied }: Sugges
           </div>
         </div>
 
-        <Meter value={suggestion.conversionEfficiencyPct} label="Fossil-footprint reduction" />
+        <Meter value={suggestion.conversionEfficiencyPct} label="Eco Friendliness" />
 
         {suggestion.appliedIncentives.length > 0 ? (
           <ul className="flex flex-col gap-1 text-xs text-black/60 dark:text-white/60">
