@@ -2,6 +2,9 @@ import type { IncentiveEntry } from "@/types";
 
 // Localized Incentive & Generation Database (PRD section 5, verbatim).
 // Static seed data for the hackathon MVP — not a live/official incentive feed.
+// Each document's estimatedHours sums to the incentive's total paperwork time —
+// lib/intelligence/incentiveIntelligence.ts derives the total from these rather
+// than storing it separately, so the parts always add up to the whole.
 export const incentives: IncentiveEntry[] = [
   {
     zipCodePrefix: "328",
@@ -10,11 +13,15 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 350,
     type: "Instant Rebate",
     eligibility: "Homeowner or renter with utility account approval; Energy Star equipment required.",
-    requiredDocuments: ["Utility account number", "Paid invoice", "Energy Star model number"],
+    requiredDocuments: [
+      { name: "Utility account number", estimatedHours: 0.25 },
+      { name: "Paid invoice", estimatedHours: 0.5 },
+      { name: "Energy Star model number", estimatedHours: 0.75 },
+    ],
     stackable: true,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "ENERGY STAR Rebate Finder",
+    sourceUrl: "https://www.energystar.gov/rebate-finder",
     confidenceScore: 0.62,
-    paperworkHours: 1.5,
   },
   {
     zipCodePrefix: "902",
@@ -23,11 +30,15 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 1000,
     type: "Capacity Rebate",
     eligibility: "Battery storage project in an eligible California utility territory.",
-    requiredDocuments: ["Battery quote", "Interconnection application", "Proof of residence"],
+    requiredDocuments: [
+      { name: "Battery quote", estimatedHours: 0.75 },
+      { name: "Interconnection application", estimatedHours: 1.5 },
+      { name: "Proof of residence", estimatedHours: 0.75 },
+    ],
     stackable: true,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "Self-Generation Incentive Program",
+    sourceUrl: "https://www.selfgenca.com/",
     confidenceScore: 0.68,
-    paperworkHours: 3,
   },
   {
     zipCodePrefix: "ANY",
@@ -36,11 +47,15 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 2500,
     type: "Bill Discount Lease Offset",
     eligibility: "Lease or PPA offer where the installer passes through part of project value.",
-    requiredDocuments: ["Solar or battery lease proposal", "Utility bill", "Roof or site photos"],
+    requiredDocuments: [
+      { name: "Solar or battery lease proposal", estimatedHours: 0.75 },
+      { name: "Utility bill", estimatedHours: 0.25 },
+      { name: "Roof or site photos", estimatedHours: 1 },
+    ],
     stackable: false,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "IRS Residential Clean Energy Credit",
+    sourceUrl: "https://www.irs.gov/credits-deductions/residential-clean-energy-credit",
     confidenceScore: 0.55,
-    paperworkHours: 2,
   },
   {
     zipCodePrefix: "981",
@@ -49,12 +64,16 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 400,
     type: "Rebate",
     eligibility: "Heat pump water heater replacing electric-resistance or fossil-fuel water heating.",
-    requiredDocuments: ["Dated invoice", "Equipment AHRI certificate", "Installer license"],
+    requiredDocuments: [
+      { name: "Dated invoice", estimatedHours: 0.5 },
+      { name: "Equipment AHRI certificate", estimatedHours: 0.5 },
+      { name: "Installer license", estimatedHours: 0.25 },
+    ],
     deadlineISO: "2026-12-31",
     stackable: true,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "ENERGY STAR Rebate Finder",
+    sourceUrl: "https://www.energystar.gov/rebate-finder",
     confidenceScore: 0.7,
-    paperworkHours: 1.25,
   },
   {
     zipCodePrefix: "ANY",
@@ -63,11 +82,14 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 100,
     type: "Rebate",
     eligibility: "Audit or smart thermostat purchase tied to a qualified home-energy assessment.",
-    requiredDocuments: ["Audit report", "Thermostat receipt"],
+    requiredDocuments: [
+      { name: "Audit report", estimatedHours: 0.5 },
+      { name: "Thermostat receipt", estimatedHours: 0.25 },
+    ],
     stackable: true,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "IRS Energy Efficient Home Improvement Credit",
+    sourceUrl: "https://www.irs.gov/credits-deductions/energy-efficient-home-improvement-credit",
     confidenceScore: 0.6,
-    paperworkHours: 0.75,
   },
   {
     zipCodePrefix: "941",
@@ -76,12 +98,16 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 600,
     type: "Rebate",
     eligibility: "Fossil-fuel furnace replacement with a qualified heat pump system.",
-    requiredDocuments: ["Contractor quote", "Decommissioning photo", "Heat pump model number"],
+    requiredDocuments: [
+      { name: "Contractor quote", estimatedHours: 0.75 },
+      { name: "Decommissioning photo", estimatedHours: 0.5 },
+      { name: "Heat pump model number", estimatedHours: 1.25 },
+    ],
     deadlineISO: "2026-10-15",
     stackable: true,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "BayREN Programs & Rebates",
+    sourceUrl: "https://www.bayren.org/programs-rebates",
     confidenceScore: 0.66,
-    paperworkHours: 2.5,
   },
   {
     zipCodePrefix: "100",
@@ -90,11 +116,14 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 500,
     type: "Rebate",
     eligibility: "Gas range replacement with induction or electric cooking equipment.",
-    requiredDocuments: ["Gas appliance removal proof", "Induction range receipt"],
+    requiredDocuments: [
+      { name: "Gas appliance removal proof", estimatedHours: 0.75 },
+      { name: "Induction range receipt", estimatedHours: 0.75 },
+    ],
     stackable: true,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "NYSERDA EmPower+",
+    sourceUrl: "https://www.nyserda.ny.gov/All-Programs/EmPower-New-York-Program",
     confidenceScore: 0.64,
-    paperworkHours: 1.5,
   },
   {
     zipCodePrefix: "ANY",
@@ -103,11 +132,15 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 300,
     type: "Readiness Grant",
     eligibility: "Air sealing or insulation project completed before HVAC electrification.",
-    requiredDocuments: ["Before photos", "Contractor invoice", "Attic or envelope scope"],
+    requiredDocuments: [
+      { name: "Before photos", estimatedHours: 0.25 },
+      { name: "Contractor invoice", estimatedHours: 0.5 },
+      { name: "Attic or envelope scope", estimatedHours: 0.25 },
+    ],
     stackable: true,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "DOE Home Energy Rebates",
+    sourceUrl: "https://www.energy.gov/cmei/scep/home-energy-rebates-program",
     confidenceScore: 0.58,
-    paperworkHours: 1,
   },
   {
     zipCodePrefix: "ANY",
@@ -116,11 +149,15 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 750,
     type: "Tax Credit",
     eligibility: "Panel upgrade that enables qualified electrification equipment.",
-    requiredDocuments: ["Panel permit", "Electrician invoice", "Linked equipment quote"],
+    requiredDocuments: [
+      { name: "Panel permit", estimatedHours: 1 },
+      { name: "Electrician invoice", estimatedHours: 0.5 },
+      { name: "Linked equipment quote", estimatedHours: 0.5 },
+    ],
     stackable: true,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "IRS Energy Efficient Home Improvement Credit",
+    sourceUrl: "https://www.irs.gov/credits-deductions/energy-efficient-home-improvement-credit",
     confidenceScore: 0.57,
-    paperworkHours: 2,
   },
   {
     zipCodePrefix: "ANY",
@@ -129,10 +166,14 @@ export const incentives: IncentiveEntry[] = [
     rebateValueUSD: 1200,
     type: "Performance Rebate",
     eligibility: "Qualified heat pump installation sized for the home load.",
-    requiredDocuments: ["Manual J or load estimate", "AHRI certificate", "Installer invoice"],
+    requiredDocuments: [
+      { name: "Manual J or load estimate", estimatedHours: 1.25 },
+      { name: "AHRI certificate", estimatedHours: 0.5 },
+      { name: "Installer invoice", estimatedHours: 0.5 },
+    ],
     stackable: true,
-    sourceName: "EcoStep demo incentive catalog",
+    sourceName: "DOE Home Energy Rebates",
+    sourceUrl: "https://www.energy.gov/cmei/scep/home-energy-rebates-program",
     confidenceScore: 0.61,
-    paperworkHours: 2.25,
   },
 ];

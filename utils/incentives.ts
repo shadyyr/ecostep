@@ -43,18 +43,24 @@ export function withAppliedIncentives(suggestion: Suggestion, zipCode: string): 
       incentiveName,
       rebateValueUSD,
       type,
+      eligibility,
       sourceName,
+      sourceUrl,
       deadlineISO,
       requiredDocuments,
       confidenceScore,
+      stackable,
     }) => ({
       incentiveName,
       rebateValueUSD,
       type,
+      eligibility,
       sourceLabel: sourceName,
+      sourceUrl,
       deadlineISO,
       requiredDocuments,
       confidenceScore,
+      stackable,
     })
   );
   return { ...suggestion, appliedIncentives };

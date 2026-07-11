@@ -1,5 +1,11 @@
 import { useState } from "react";
-import type { Suggestion, SuggestionIncentiveInsight, UserProfile } from "@/types";
+import type {
+  AppliedIncentive,
+  RequiredDocument,
+  Suggestion,
+  SuggestionIncentiveInsight,
+  UserProfile,
+} from "@/types";
 import { Card } from "@/components/ui/Card";
 import { TierBadge, StatusBadge } from "@/components/ui/Badge";
 import { Meter } from "@/components/ui/Meter";
@@ -16,7 +22,12 @@ const currency = new Intl.NumberFormat("en-US", {
 
 const deadlineFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
 
-function formatDeadlineNote(incentive: SuggestionIncentiveInsight["matches"][number]): string | null {
+type IncentiveMatch = SuggestionIncentiveInsight["matches"][number];
+type PopupIncentive = IncentiveMatch | AppliedIncentive;
+
+function formatDeadlineNote(
+  incentive: Pick<PopupIncentive, "deadlineISO"> & { daysUntilDeadline?: number }
+): string | null {
   if (!incentive.deadlineISO) return null;
   if (incentive.daysUntilDeadline !== undefined && incentive.daysUntilDeadline < 0) {
     return "may have expired — verify";
@@ -24,6 +35,31 @@ function formatDeadlineNote(incentive: SuggestionIncentiveInsight["matches"][num
   const date = new Date(`${incentive.deadlineISO}T00:00:00`);
   if (Number.isNaN(date.getTime())) return null;
   return `expires ${deadlineFormatter.format(date)}`;
+}
+
+function formatDocuments(documents?: RequiredDocument[]): string {
+  if (!documents || documents.length === 0) return "Confirm required documents with the program administrator.";
+  return documents.map((document) => document.name).join(", ");
+}
+
+function getPaperworkHours(incentive: PopupIncentive): number | null {
+  if ("paperworkHours" in incentive) return incentive.paperworkHours;
+  if (!incentive.requiredDocuments || incentive.requiredDocuments.length === 0) return null;
+  return incentive.requiredDocuments.reduce((sum, document) => sum + document.estimatedHours, 0);
+}
+
+function getNextStep(incentive: PopupIncentive): string {
+  if (incentive.nextStep) return incentive.nextStep;
+  const firstDocument = incentive.requiredDocuments?.[0]?.name.toLowerCase();
+  return firstDocument
+    ? `Confirm eligibility, then gather ${firstDocument}.`
+    : "Confirm eligibility with the official program page before purchase.";
+}
+
+function getIncentiveSummary(incentive: PopupIncentive, suggestion: Suggestion): string {
+  const base = `This ${incentive.type.toLowerCase()} may reduce the cost of ${suggestion.shortName} by ${currency.format(incentive.rebateValueUSD)}.`;
+  if (incentive.eligibility) return `${base} ${incentive.eligibility}`;
+  return `${base} Eligibility depends on your address, equipment, installer, and program rules.`;
 }
 
 interface SuggestionCardProps {
@@ -45,10 +81,17 @@ export function SuggestionCard({
 }: SuggestionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [expandedIncentive, setExpandedIncentive] = useState<string | null>(null);
   const effectivePrice = getEffectivePrice(suggestion);
   const totalRebate = suggestion.priceUSD - effectivePrice;
   const insight = profile ? getSuggestionInsight(suggestion, profile, allSuggestions) : null;
   const incentiveMatches = incentiveInsight?.matches ?? [];
+  const selectedIncentive =
+    incentiveMatches.find((incentive) => incentive.incentiveName === expandedIncentive) ??
+    suggestion.appliedIncentives.find((incentive) => incentive.incentiveName === expandedIncentive) ??
+    null;
+  const selectedDeadlineNote = selectedIncentive ? formatDeadlineNote(selectedIncentive) : null;
+  const selectedPaperworkHours = selectedIncentive ? getPaperworkHours(selectedIncentive) : null;
 
   function handleAccept() {
     if (!suggestion.accepted) {
@@ -120,16 +163,24 @@ export function SuggestionCard({
               const deadlineNote = formatDeadlineNote(incentive);
               return (
                 <li key={incentive.incentiveName} className="flex flex-col gap-0.5">
-                  <span>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedIncentive(incentive.incentiveName)}
+                    className="w-fit text-left font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900 dark:text-brand-250 dark:hover:text-brand-100"
+                  >
                     🎁 {incentive.incentiveName} — {currency.format(incentive.rebateValueUSD)} (
                     {incentive.type})
-                  </span>
-                  <span className="text-black/45 dark:text-white/45">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedIncentive(incentive.incentiveName)}
+                    className="w-fit text-left text-black/45 underline underline-offset-2 hover:text-black/65 dark:text-white/45 dark:hover:text-white/65"
+                  >
                     📋 {incentive.requiredDocuments.length}{" "}
                     {incentive.requiredDocuments.length === 1 ? "document" : "documents"} · ~
                     {incentive.paperworkHours} {incentive.paperworkHours === 1 ? "hr" : "hrs"} paperwork
                     {deadlineNote ? ` · ${deadlineNote}` : ""}
-                  </span>
+                  </button>
                 </li>
               );
             })}
@@ -138,8 +189,14 @@ export function SuggestionCard({
           <ul className="flex flex-col gap-1 text-xs text-black/60 dark:text-white/60">
             {suggestion.appliedIncentives.map((incentive) => (
               <li key={incentive.incentiveName}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedIncentive(incentive.incentiveName)}
+                  className="text-left font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900 dark:text-brand-250 dark:hover:text-brand-100"
+                >
                 🎁 {incentive.incentiveName} — {currency.format(incentive.rebateValueUSD)} (
                 {incentive.type})
+                </button>
               </li>
             ))}
           </ul>
@@ -241,11 +298,18 @@ export function SuggestionCard({
                         </span>
                       </div>
                       <p className="text-xs">{incentive.eligibility}</p>
-                      <p className="text-xs text-black/50 dark:text-white/50">
-                        📋 {incentive.requiredDocuments.join(", ")}
-                      </p>
-                      <p className="text-xs text-black/50 dark:text-white/50">
-                        ~{incentive.paperworkHours} {incentive.paperworkHours === 1 ? "hr" : "hrs"} of
+                      <ul className="flex flex-col gap-0.5 text-xs text-black/50 dark:text-white/50">
+                        {incentive.requiredDocuments.map((document) => (
+                          <li key={document.name} className="flex items-center justify-between gap-3">
+                            <span>📋 {document.name}</span>
+                            <span className="shrink-0 tabular-nums">
+                              ~{document.estimatedHours} {document.estimatedHours === 1 ? "hr" : "hrs"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-xs font-medium text-black/60 dark:text-white/60">
+                        ~{incentive.paperworkHours} {incentive.paperworkHours === 1 ? "hr" : "hrs"} total
                         paperwork{deadlineNote ? ` · ${deadlineNote}` : ""}
                         {incentive.stackable === false ? " · not stackable with other rebates" : ""}
                       </p>
@@ -292,6 +356,93 @@ export function SuggestionCard({
             </div>
           ) : null}
         </div>
+      </Modal>
+
+      <Modal
+        open={selectedIncentive !== null}
+        onClose={() => setExpandedIncentive(null)}
+        title={selectedIncentive?.incentiveName ?? "Incentive details"}
+      >
+        {selectedIncentive ? (
+          <div className="flex flex-col gap-4">
+            <div className="rounded-lg border border-status-good/20 bg-status-good/10 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-status-good">
+                {selectedIncentive.type}
+              </p>
+              <p className="mt-1 text-2xl font-semibold text-status-good">
+                {currency.format(selectedIncentive.rebateValueUSD)}
+              </p>
+              <p className="mt-2 text-sm text-black/70 dark:text-white/75">
+                {getIncentiveSummary(selectedIncentive, suggestion)}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <h4 className="text-sm font-semibold">Official source</h4>
+              {selectedIncentive.sourceUrl ? (
+                <a
+                  href={selectedIncentive.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-fit rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-900"
+                >
+                  Open official rebate source
+                </a>
+              ) : (
+                <StatusBadge tone="warning">
+                  No official source link is saved for this incentive yet.
+                </StatusBadge>
+              )}
+              {selectedIncentive.sourceLabel ? (
+                <p className="text-xs text-black/45 dark:text-white/45">
+                  Source: {selectedIncentive.sourceLabel}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="rounded-lg border border-black/10 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/[0.04]">
+              <h4 className="text-sm font-semibold">What you need to do</h4>
+              <p className="mt-1 text-sm text-black/70 dark:text-white/75">
+                {getNextStep(selectedIncentive)}
+              </p>
+              <p className="mt-2 text-xs text-black/50 dark:text-white/50">
+                Documents: {formatDocuments(selectedIncentive.requiredDocuments)}
+              </p>
+              {selectedPaperworkHours !== null ? (
+                <p className="mt-1 text-xs text-black/50 dark:text-white/50">
+                  Estimated paperwork: ~{selectedPaperworkHours}{" "}
+                  {selectedPaperworkHours === 1 ? "hr" : "hrs"}
+                </p>
+              ) : null}
+              {selectedDeadlineNote ? (
+                <p className="mt-1 text-xs text-black/50 dark:text-white/50">
+                  Timing: {selectedDeadlineNote}
+                </p>
+              ) : null}
+              {selectedIncentive.stackable === false ? (
+                <p className="mt-1 text-xs text-black/50 dark:text-white/50">
+                  This program may not stack with other rebates.
+                </p>
+              ) : null}
+            </div>
+
+            {selectedIncentive.requiredDocuments && selectedIncentive.requiredDocuments.length > 0 ? (
+              <ul className="flex flex-col gap-1.5 text-sm text-black/60 dark:text-white/70">
+                {selectedIncentive.requiredDocuments.map((document) => (
+                  <li
+                    key={document.name}
+                    className="flex items-center justify-between gap-3 rounded-lg bg-black/[0.02] px-3 py-2 dark:bg-white/[0.04]"
+                  >
+                    <span>{document.name}</span>
+                    <span className="shrink-0 text-xs tabular-nums text-black/45 dark:text-white/45">
+                      ~{document.estimatedHours} {document.estimatedHours === 1 ? "hr" : "hrs"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </Modal>
     </>
   );

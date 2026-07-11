@@ -66,9 +66,9 @@ function matchToInsight(
 ): IncentiveMatchInsight {
   const days = daysUntil(entry.deadlineISO, currentDate);
   const requiredDocuments = entry.requiredDocuments ?? [
-    "Equipment quote or paid invoice",
-    "Proof of installation address",
-    "Model or efficiency certificate",
+    { name: "Equipment quote or paid invoice", estimatedHours: 0.5 },
+    { name: "Proof of installation address", estimatedHours: 0.5 },
+    { name: "Model or efficiency certificate", estimatedHours: 0.5 },
   ];
   const deadlineText =
     days === undefined
@@ -88,8 +88,10 @@ function matchToInsight(
     daysUntilDeadline: days,
     requiredDocuments,
     stackable: entry.stackable ?? true,
-    paperworkHours: entry.paperworkHours ?? 1.5,
-    nextStep: `${deadlineText} Gather ${requiredDocuments[0].toLowerCase()}.`,
+    // Derived from the documents themselves, not stored separately, so the
+    // per-document breakdown always sums exactly to the total shown.
+    paperworkHours: sumBy(requiredDocuments, (document) => document.estimatedHours),
+    nextStep: `${deadlineText} Gather ${requiredDocuments[0].name.toLowerCase()}.`,
     confidenceScore: confidenceFor(entry, suggestion.category, zipCode),
   };
 }
@@ -97,7 +99,7 @@ function matchToInsight(
 function buildPaperworkSteps(matches: IncentiveMatchInsight[]): string[] {
   const documents = new Set<string>();
   for (const match of matches) {
-    for (const document of match.requiredDocuments) documents.add(document);
+    for (const document of match.requiredDocuments) documents.add(document.name);
   }
   return [
     ...Array.from(documents).slice(0, 5).map((document) => `Collect ${document.toLowerCase()}.`),

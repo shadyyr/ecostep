@@ -10,15 +10,23 @@ export interface UserProfile {
 
 export type Tier = 1 | 2 | 3;
 
+export interface RequiredDocument {
+  name: string;
+  estimatedHours: number;
+}
+
 export interface AppliedIncentive {
   incentiveName: string;
   rebateValueUSD: number;
   type: string;
+  eligibility?: string;
   sourceLabel?: string;
+  sourceUrl?: string;
   deadlineISO?: string;
-  requiredDocuments?: string[];
+  requiredDocuments?: RequiredDocument[];
   nextStep?: string;
   confidenceScore?: number;
+  stackable?: boolean;
 }
 
 export interface Suggestion {
@@ -60,14 +68,13 @@ export interface IncentiveEntry {
   rebateValueUSD: number;
   type: string;
   eligibility?: string;
-  requiredDocuments?: string[];
+  requiredDocuments?: RequiredDocument[];
   deadlineISO?: string;
   stackable?: boolean;
   sourceName?: string;
   sourceUrl?: string;
   confidenceScore?: number;
   incomeQualified?: boolean;
-  paperworkHours?: number;
 }
 
 export type SortMode =
@@ -132,7 +139,7 @@ export interface IncentiveMatchInsight {
   sourceUrl?: string;
   deadlineISO?: string;
   daysUntilDeadline?: number;
-  requiredDocuments: string[];
+  requiredDocuments: RequiredDocument[];
   stackable: boolean;
   paperworkHours: number;
   nextStep: string;
