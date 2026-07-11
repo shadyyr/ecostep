@@ -256,13 +256,13 @@ export function Dashboard() {
 
             {affordability ? (
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-brand-250/40 bg-brand-50/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-950/35 dark:text-brand-150">
+                <div className="rounded-xl border border-brand-250/40 bg-brand-100/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-900/35 dark:text-brand-250">
                   <p className="text-xs uppercase tracking-wide opacity-70">Recommended stack net impact</p>
                   <p className="mt-1 text-lg font-semibold">
                     {currency.format(affordability.portfolioMonthlyNetUSD)}/mo
                   </p>
                 </div>
-                <div className="rounded-xl border border-brand-250/40 bg-brand-50/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-950/35 dark:text-brand-150">
+                <div className="rounded-xl border border-brand-250/40 bg-brand-100/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-900/35 dark:text-brand-250">
                   <p className="text-xs uppercase tracking-wide opacity-70">First-year cashflow</p>
                   <p className="mt-1 text-lg font-semibold">
                     {currency.format(affordability.portfolioFirstYearCashflowUSD)}
@@ -301,7 +301,7 @@ export function Dashboard() {
         </p>
 
         {nextAction ? (
-          <div className="mt-3 rounded-xl border border-brand-250/40 bg-brand-50/70 p-3 text-sm text-brand-900 dark:border-brand-250/30 dark:bg-brand-950/35 dark:text-white">
+          <div className="mt-3 rounded-xl border border-brand-250/40 bg-brand-100/70 p-3 text-sm text-brand-900 dark:border-brand-250/30 dark:bg-brand-900/35 dark:text-white">
             <p className="font-semibold text-brand-900 dark:text-brand-100">
               Best next action:{" "}
               {nextActionIsVisible && nextActionAnchorId ? (

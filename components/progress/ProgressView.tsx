@@ -120,7 +120,7 @@ function AcceptedProgressCard({
     >
       <Card className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-brand-900 dark:text-brand-150">
+          <h3 className="truncate text-base font-semibold text-brand-900 dark:text-brand-250">
             {suggestion.shortName}
           </h3>
           <p className="mt-1 text-sm text-black/60 dark:text-white/60">

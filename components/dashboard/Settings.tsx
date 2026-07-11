@@ -275,20 +275,20 @@ export function Settings({
                         <p className="text-xs font-semibold uppercase tracking-wide text-black/85 dark:text-white/80">
                           Uploaded
                         </p>
-                        <p className="truncate text-sm font-semibold text-brand-900 dark:text-brand-150">
+                        <p className="truncate text-sm font-semibold text-brand-900 dark:text-brand-250">
                           {suggestion.shortName}
                         </p>
                         <p className="text-xs text-black/80 dark:text-white/80">
                           {suggestion.source === "manual" ? "Manually entered" : "Scanned"}
                         </p>
                       </div>
-                      <div className="min-w-0 rounded-lg border border-brand-250/55 bg-brand-50/90 px-2.5 py-2 dark:border-brand-250/30 dark:bg-brand-950/30">
+                      <div className="min-w-0 rounded-lg border border-brand-250/55 bg-brand-100/90 px-2.5 py-2 dark:border-brand-250/30 dark:bg-brand-900/30">
                         <p className="text-xs font-semibold uppercase tracking-wide text-black/85 dark:text-white/80">
                           Eco-friendly counterpart
                         </p>
                         {getCounterpart(suggestion) ? (
                           <>
-                            <p className="truncate text-sm font-semibold text-brand-900 dark:text-brand-150">
+                            <p className="truncate text-sm font-semibold text-brand-900 dark:text-brand-250">
                               {getCounterpart(suggestion)?.shortName}
                             </p>
                             <p className="text-xs text-black/80 dark:text-white/80">
@@ -341,7 +341,7 @@ export function Settings({
                         className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
+                          <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-250">
                             {suggestion.shortName}
                           </p>
                           <p className="text-xs text-black/45 dark:text-white/45">

@@ -26,8 +26,8 @@ export function SortTabs({
             onClick={() => onChange(mode)}
             className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
               active
-                ? "bg-brand-600 text-white"
-                : "bg-brand-100 text-brand-900 hover:bg-brand-250"
+                ? "bg-brand-100 text-brand-900"
+                : "bg-brand-600 text-white hover:bg-brand-900"
             }`}
           >
             {SORT_MODE_LABELS[mode]}
