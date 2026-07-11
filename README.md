@@ -8,7 +8,7 @@ Built for a hackathon (OneEthos + Gemini API tracks).
 
 - Next.js 16 (App Router, TypeScript, Turbopack)
 - Tailwind CSS v4
-- `@google/genai` — Gemini 2.5 Flash for multimodal appliance-label parsing
+- `@google/genai` — Gemini 3.5 Flash for multimodal appliance-label parsing
 - No database — all state lives client-side in React Context + `localStorage`
 
 ## Setup
@@ -23,7 +23,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Gemini API key
 
-The camera → audit flow calls `/api/audit`, a server-side Next.js route handler that calls Gemini 2.5 Flash. It needs a real key in `.env.local`:
+The camera → audit flow calls `/api/audit`, a server-side Next.js route handler that calls Gemini 3.5 Flash. It needs a real key in `.env.local`:
 
 ```
 GEMINI_API_KEY=your_key_here

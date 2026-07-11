@@ -103,7 +103,9 @@ export async function POST(request: Request) {
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      // gemini-2.5-flash was retired for new API keys; gemini-3.5-flash is the
+      // current GA flash model verified to work with this schema+multimodal setup.
+      model: "gemini-3.5-flash",
       contents: [{ role: "user", parts }],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
