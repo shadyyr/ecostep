@@ -10,21 +10,19 @@ interface SettingsProps {
   onClose: () => void;
   profile: UserProfile;
   uploadedSuggestions: Suggestion[];
-  acceptedSuggestions: Suggestion[];
   rejectedSuggestions: Suggestion[];
   counterpartSuggestions: Suggestion[];
   onDeleteSuggestion: (id: string) => void;
   onUpdateProfile: (profile: UserProfile) => void;
 }
 
-type SettingsTab = "display" | "homeProfile" | "uploaded" | "accepted" | "rejected";
+type SettingsTab = "display" | "homeProfile" | "uploaded" | "rejected";
 
 export function Settings({
   open,
   onClose,
   profile,
   uploadedSuggestions,
-  acceptedSuggestions,
   rejectedSuggestions,
   counterpartSuggestions,
   onDeleteSuggestion,
@@ -84,7 +82,6 @@ export function Settings({
     { id: "display", label: "Display" },
     { id: "homeProfile", label: "Home Profile" },
     { id: "uploaded", label: "Uploaded Appliances", count: uploadedSuggestions.length },
-    { id: "accepted", label: "Accepted Appliances", count: acceptedSuggestions.length },
     { id: "rejected", label: "Rejected Appliances", count: rejectedSuggestions.length },
   ];
 
@@ -318,20 +315,6 @@ export function Settings({
                     </button>
                   </div>
                 ))
-              )}
-            </div>
-          )}
-
-          {activeTab === "accepted" && (
-            <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto">
-              {acceptedSuggestions.length === 0 ? (
-                <p className="text-sm text-black/85 dark:text-white/80">
-                  No accepted appliances yet. Accept suggestions to see them here.
-                </p>
-              ) : (
-                acceptedSuggestions.map((suggestion) =>
-                  renderTrashRow(suggestion, "Accepted recommendation")
-                )
               )}
             </div>
           )}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type {
+  AffordabilityScenario,
   AppliedIncentive,
-  RequiredDocument,
   Suggestion,
   SuggestionIncentiveInsight,
   UserProfile,
@@ -37,11 +37,6 @@ function formatDeadlineNote(
   return `expires ${deadlineFormatter.format(date)}`;
 }
 
-function formatDocuments(documents?: RequiredDocument[]): string {
-  if (!documents || documents.length === 0) return "Confirm required documents with the program administrator.";
-  return documents.map((document) => document.name).join(", ");
-}
-
 function getPaperworkHours(incentive: PopupIncentive): number | null {
   if ("paperworkHours" in incentive) return incentive.paperworkHours;
   if (!incentive.requiredDocuments || incentive.requiredDocuments.length === 0) return null;
@@ -62,6 +57,16 @@ function getIncentiveSummary(incentive: PopupIncentive, suggestion: Suggestion):
   return `${base} Eligibility depends on your address, equipment, installer, and program rules.`;
 }
 
+const AFFORDABILITY_STATUS_META: Record<
+  AffordabilityScenario["status"],
+  { tone: "good" | "warning" | "critical"; label: string }
+> = {
+  cash_positive: { tone: "good", label: "Cash positive" },
+  budget_fit: { tone: "good", label: "Fits your budget" },
+  financing_needed: { tone: "warning", label: "Needs financing" },
+  long_payback: { tone: "warning", label: "Long payback" },
+};
+
 interface SuggestionCardProps {
   suggestion: Suggestion;
   onReject: (id: string) => void;
@@ -69,6 +74,7 @@ interface SuggestionCardProps {
   profile?: UserProfile;
   allSuggestions?: Suggestion[];
   incentiveInsight?: SuggestionIncentiveInsight;
+  affordabilityScenario?: AffordabilityScenario;
 }
 
 export function SuggestionCard({
@@ -78,20 +84,33 @@ export function SuggestionCard({
   profile,
   allSuggestions,
   incentiveInsight,
+  affordabilityScenario,
 }: SuggestionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
   const [expandedIncentive, setExpandedIncentive] = useState<string | null>(null);
+  const [expandedDocuments, setExpandedDocuments] = useState<string | null>(null);
   const effectivePrice = getEffectivePrice(suggestion);
   const totalRebate = suggestion.priceUSD - effectivePrice;
   const insight = profile ? getSuggestionInsight(suggestion, profile, allSuggestions) : null;
   const incentiveMatches = incentiveInsight?.matches ?? [];
-  const selectedIncentive =
-    incentiveMatches.find((incentive) => incentive.incentiveName === expandedIncentive) ??
-    suggestion.appliedIncentives.find((incentive) => incentive.incentiveName === expandedIncentive) ??
-    null;
+
+  function findIncentiveByName(name: string | null): PopupIncentive | null {
+    if (!name) return null;
+    return (
+      incentiveMatches.find((incentive) => incentive.incentiveName === name) ??
+      suggestion.appliedIncentives.find((incentive) => incentive.incentiveName === name) ??
+      null
+    );
+  }
+
+  const selectedIncentive = findIncentiveByName(expandedIncentive);
   const selectedDeadlineNote = selectedIncentive ? formatDeadlineNote(selectedIncentive) : null;
-  const selectedPaperworkHours = selectedIncentive ? getPaperworkHours(selectedIncentive) : null;
+
+  const selectedDocumentsIncentive = findIncentiveByName(expandedDocuments);
+  const selectedDocumentsPaperworkHours = selectedDocumentsIncentive
+    ? getPaperworkHours(selectedDocumentsIncentive)
+    : null;
 
   function handleAccept() {
     if (!suggestion.accepted) {
@@ -148,14 +167,19 @@ export function SuggestionCard({
 
         <Meter value={suggestion.conversionEfficiencyPct} label="Conservation Percentage" />
 
-        <div className="flex items-center justify-between rounded-lg border border-black/10 bg-black/[0.02] px-3 py-2 text-sm dark:border-white/10 dark:bg-white/[0.04]">
-          <span className="text-black/60 dark:text-white/60">Confidence</span>
-          <span className="font-medium text-brand-700 dark:text-brand-250">
-            {typeof suggestion.confidenceScore === "number"
-              ? `${Math.round(suggestion.confidenceScore * 100)}%`
-              : "Medium"}
-          </span>
-        </div>
+        {affordabilityScenario ? (
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <StatusBadge tone={AFFORDABILITY_STATUS_META[affordabilityScenario.status].tone}>
+              {AFFORDABILITY_STATUS_META[affordabilityScenario.status].label}
+            </StatusBadge>
+            <span className="text-black/50 dark:text-white/50">
+              {currency.format(affordabilityScenario.monthlyNetImpactUSD)}/mo net
+              {affordabilityScenario.paybackMonths !== null
+                ? ` · pays back in ${affordabilityScenario.paybackMonths} mo`
+                : ""}
+            </span>
+          </div>
+        ) : null}
 
         {incentiveMatches.length > 0 ? (
           <ul className="flex flex-col gap-2 text-xs text-black/60 dark:text-white/60">
@@ -173,7 +197,7 @@ export function SuggestionCard({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setExpandedIncentive(incentive.incentiveName)}
+                    onClick={() => setExpandedDocuments(incentive.incentiveName)}
                     className="w-fit text-left text-black/45 underline underline-offset-2 hover:text-black/65 dark:text-white/45 dark:hover:text-white/65"
                   >
                     📋 {incentive.requiredDocuments.length}{" "}
@@ -254,6 +278,63 @@ export function SuggestionCard({
               <div className="text-lg font-semibold capitalize">{suggestion.category}</div>
             </div>
           </div>
+
+          {affordabilityScenario ? (
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-semibold">Money-wise verdict</h4>
+                <StatusBadge tone={AFFORDABILITY_STATUS_META[affordabilityScenario.status].tone}>
+                  {AFFORDABILITY_STATUS_META[affordabilityScenario.status].label}
+                </StatusBadge>
+              </div>
+              <p className="mb-3 text-xs text-black/50 dark:text-white/50">
+                Based on the utility bill you uploaded, this is how switching actually pencils out.
+              </p>
+              <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Net upfront cost</div>
+                  <div className="font-semibold">{currency.format(affordabilityScenario.netUpfrontCostUSD)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Monthly payment</div>
+                  <div className="font-semibold">{currency.format(affordabilityScenario.monthlyPaymentUSD)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Bill-adjusted savings</div>
+                  <div className="font-semibold text-status-good">
+                    {currency.format(affordabilityScenario.monthlySavingsUSD)}/mo
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Monthly net impact</div>
+                  <div
+                    className={`font-semibold ${affordabilityScenario.monthlyNetImpactUSD >= 0 ? "text-status-good" : ""}`}
+                  >
+                    {currency.format(affordabilityScenario.monthlyNetImpactUSD)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Payback</div>
+                  <div className="font-semibold">
+                    {affordabilityScenario.paybackMonths !== null
+                      ? `${affordabilityScenario.paybackMonths} mo`
+                      : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-black/50 dark:text-white/50 mb-1">Affordability score</div>
+                  <div className="font-semibold">{affordabilityScenario.affordabilityScore}/100</div>
+                </div>
+              </div>
+              {affordabilityScenario.flags.length > 0 ? (
+                <ul className="mt-3 flex flex-col gap-1 text-xs text-black/50 dark:text-white/50">
+                  {affordabilityScenario.flags.map((flag) => (
+                    <li key={flag}>• {flag}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
 
           {incentiveMatches.length > 0 ? (
             <div>
@@ -408,15 +489,6 @@ export function SuggestionCard({
               <p className="mt-1 text-sm text-black/70 dark:text-white/75">
                 {getNextStep(selectedIncentive)}
               </p>
-              <p className="mt-2 text-xs text-black/50 dark:text-white/50">
-                Documents: {formatDocuments(selectedIncentive.requiredDocuments)}
-              </p>
-              {selectedPaperworkHours !== null ? (
-                <p className="mt-1 text-xs text-black/50 dark:text-white/50">
-                  Estimated paperwork: ~{selectedPaperworkHours}{" "}
-                  {selectedPaperworkHours === 1 ? "hr" : "hrs"}
-                </p>
-              ) : null}
               {selectedDeadlineNote ? (
                 <p className="mt-1 text-xs text-black/50 dark:text-white/50">
                   Timing: {selectedDeadlineNote}
@@ -428,10 +500,36 @@ export function SuggestionCard({
                 </p>
               ) : null}
             </div>
+          </div>
+        ) : null}
+      </Modal>
 
-            {selectedIncentive.requiredDocuments && selectedIncentive.requiredDocuments.length > 0 ? (
+      <Modal
+        open={selectedDocumentsIncentive !== null}
+        onClose={() => setExpandedDocuments(null)}
+        title={
+          selectedDocumentsIncentive
+            ? `${selectedDocumentsIncentive.incentiveName} — Paperwork`
+            : "Paperwork"
+        }
+      >
+        {selectedDocumentsIncentive ? (
+          <div className="flex flex-col gap-4">
+            <div className="rounded-lg border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.04]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
+                Estimated paperwork time
+              </p>
+              <p className="mt-1 text-2xl font-semibold">
+                {selectedDocumentsPaperworkHours !== null
+                  ? `~${selectedDocumentsPaperworkHours} ${selectedDocumentsPaperworkHours === 1 ? "hr" : "hrs"}`
+                  : "Unknown"}
+              </p>
+            </div>
+
+            {selectedDocumentsIncentive.requiredDocuments &&
+            selectedDocumentsIncentive.requiredDocuments.length > 0 ? (
               <ul className="flex flex-col gap-1.5 text-sm text-black/60 dark:text-white/70">
-                {selectedIncentive.requiredDocuments.map((document) => (
+                {selectedDocumentsIncentive.requiredDocuments.map((document) => (
                   <li
                     key={document.name}
                     className="flex items-center justify-between gap-3 rounded-lg bg-black/[0.02] px-3 py-2 dark:bg-white/[0.04]"
@@ -443,7 +541,11 @@ export function SuggestionCard({
                   </li>
                 ))}
               </ul>
-            ) : null}
+            ) : (
+              <p className="text-sm text-black/50 dark:text-white/50">
+                Confirm required documents with the program administrator.
+              </p>
+            )}
           </div>
         ) : null}
       </Modal>

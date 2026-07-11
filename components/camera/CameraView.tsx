@@ -38,8 +38,10 @@ export function CameraView({ onClose }: CameraViewProps) {
   const [lastError, setLastError] = useState<AuditError | null>(null);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
 
-  const contextInputRef = useRef<HTMLInputElement>(null);
-  const dataInputRef = useRef<HTMLInputElement>(null);
+  const contextCameraInputRef = useRef<HTMLInputElement>(null);
+  const contextUploadInputRef = useRef<HTMLInputElement>(null);
+  const dataCameraInputRef = useRef<HTMLInputElement>(null);
+  const dataUploadInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(
     () => () => {
@@ -135,8 +137,10 @@ export function CameraView({ onClose }: CameraViewProps) {
           title="Step 1 of 2: Context shot"
           hint="Frame the whole appliance and the space around it. This helps us judge installation constraints."
           buttonLabel="Take Context Photo"
+          uploadButtonLabel="Upload Context Photo"
           onFile={handleContextFile}
-          inputRef={contextInputRef}
+          cameraInputRef={contextCameraInputRef}
+          uploadInputRef={contextUploadInputRef}
           secondaryAction={{ label: "Skip this photo", onClick: skipContext }}
         />
       ) : null}
@@ -146,8 +150,10 @@ export function CameraView({ onClose }: CameraViewProps) {
           title="Step 2 of 2: Data plate shot"
           hint="Align the silver text plate inside this box. Hold steady for clear text."
           buttonLabel="Take Data Plate Photo"
+          uploadButtonLabel="Upload Data Plate Photo"
           onFile={handleDataFile}
-          inputRef={dataInputRef}
+          cameraInputRef={dataCameraInputRef}
+          uploadInputRef={dataUploadInputRef}
         />
       ) : null}
 
@@ -217,10 +223,10 @@ export function CameraView({ onClose }: CameraViewProps) {
 
           <div className="flex flex-col gap-2">
             <Button onClick={retakeData} className="w-full">
-              Retake Data Photo
+              Retake or Upload Data Photo
             </Button>
             <Button variant="secondary" onClick={retakeBoth} className="w-full">
-              Retake Both Photos
+              Retake or Upload Both Photos
             </Button>
             <Button variant="ghost" onClick={() => setStep("manual")} className="w-full">
               Use Manual Entry Instead
@@ -277,17 +283,26 @@ function CaptureStep({
   title,
   hint,
   buttonLabel,
+  uploadButtonLabel,
   onFile,
-  inputRef,
+  cameraInputRef,
+  uploadInputRef,
   secondaryAction,
 }: {
   title: string;
   hint: string;
   buttonLabel: string;
+  uploadButtonLabel: string;
   onFile: (file: File | undefined) => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  cameraInputRef: React.RefObject<HTMLInputElement | null>;
+  uploadInputRef: React.RefObject<HTMLInputElement | null>;
   secondaryAction?: { label: string; onClick: () => void };
 }) {
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    onFile(e.target.files?.[0]);
+    e.currentTarget.value = "";
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs font-medium tracking-wide text-black/50 uppercase dark:text-white/50">
@@ -299,14 +314,26 @@ function CaptureStep({
         </div>
       </div>
       <input
-        ref={inputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={(e) => onFile(e.target.files?.[0])}
+        onChange={handleInputChange}
       />
-      <Button onClick={() => inputRef.current?.click()}>{buttonLabel}</Button>
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleInputChange}
+      />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button onClick={() => cameraInputRef.current?.click()}>{buttonLabel}</Button>
+        <Button variant="secondary" onClick={() => uploadInputRef.current?.click()}>
+          {uploadButtonLabel}
+        </Button>
+      </div>
       {secondaryAction ? (
         <button
           type="button"

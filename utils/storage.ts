@@ -1,4 +1,4 @@
-import type { Suggestion, UserProfile } from "@/types";
+import type { ParsedUtilityBill, Suggestion, UserProfile } from "@/types";
 
 const STORAGE_KEY = "ecostep:v1";
 
@@ -6,6 +6,7 @@ export interface PersistedState {
   profile: UserProfile | null;
   suggestions: Suggestion[];
   rejectedSuggestionIds: string[];
+  parsedBill: ParsedUtilityBill | null;
 }
 
 export function loadState(): PersistedState | null {
@@ -21,6 +22,7 @@ export function loadState(): PersistedState | null {
       rejectedSuggestionIds: Array.isArray(parsed.rejectedSuggestionIds)
         ? parsed.rejectedSuggestionIds
         : [],
+      parsedBill: parsed.parsedBill ?? null,
     };
   } catch {
     return null;

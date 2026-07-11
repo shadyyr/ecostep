@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useAppState } from "@/context/AppStateContext";
 import {
   calculateEcoScore,
@@ -8,6 +9,7 @@ import {
   getPersonalizedNextAction,
 } from "@/utils/calculations";
 import { analyzeIncentives } from "@/lib/intelligence/incentiveIntelligence";
+import { simulateAffordability } from "@/lib/intelligence/affordability";
 import { sortSuggestionsForProfile } from "@/utils/sorting";
 import type { SortMode } from "@/types";
 import { EcoScoreDisplay } from "@/components/dashboard/EcoScoreDisplay";
@@ -15,8 +17,10 @@ import { SortTabs } from "@/components/dashboard/SortTabs";
 import { SuggestionCard } from "@/components/dashboard/SuggestionCard";
 import { TargetBillSimulator } from "@/components/dashboard/TargetBillSimulator";
 import { CameraView } from "@/components/camera/CameraView";
+import { BillScanView } from "@/components/billscan/BillScanView";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { StatusBadge } from "@/components/ui/Badge";
 import { AccountMenu } from "@/components/auth/AccountMenu";
 import { Settings } from "@/components/dashboard/Settings";
 
@@ -27,11 +31,22 @@ const currency = new Intl.NumberFormat("en-US", {
 });
 
 export function Dashboard() {
-  const { profile, activeSuggestions, suggestions, rejectSuggestion, deleteSuggestion, toggleAccepted, resetAll, setProfile } =
-    useAppState();
+  const {
+    profile,
+    activeSuggestions,
+    suggestions,
+    rejectSuggestion,
+    deleteSuggestion,
+    toggleAccepted,
+    resetAll,
+    setProfile,
+    parsedBill,
+    setUtilityBill,
+  } = useAppState();
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [billScanOpen, setBillScanOpen] = useState(false);
 
   function handleReset() {
     if (window.confirm("Reset EcoStep? This clears your profile and roadmap.")) {
@@ -56,11 +71,6 @@ export function Dashboard() {
 
   const recommendedSuggestions = useMemo(
     () => activeSuggestions.filter((s) => s.source === "mock" && !s.accepted),
-    [activeSuggestions]
-  );
-
-  const acceptedSuggestions = useMemo(
-    () => activeSuggestions.filter((s) => s.source === "mock" && s.accepted),
     [activeSuggestions]
   );
 
@@ -102,6 +112,23 @@ export function Dashboard() {
     return new Map(insights.map((insight) => [insight.suggestionId, insight]));
   }, [profile, activeSuggestions]);
 
+  const affordability = useMemo(
+    () =>
+      profile
+        ? simulateAffordability({
+            profile,
+            suggestions: activeSuggestions,
+            parsedBill: parsedBill ?? undefined,
+          })
+        : null,
+    [profile, activeSuggestions, parsedBill]
+  );
+
+  const affordabilityById = useMemo(
+    () => new Map((affordability?.scenarios ?? []).map((scenario) => [scenario.suggestionId, scenario])),
+    [affordability]
+  );
+
   const completedSteps = activeSuggestions.filter((suggestion) => suggestion.accepted).length;
   const totalPlannedSteps = Math.max(1, activeSuggestions.filter((suggestion) => !suggestion.rejected).length);
   const roadmapSavings = roadmapSteps.reduce(
@@ -124,6 +151,12 @@ export function Dashboard() {
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="flex gap-2">
+            <Link
+              href="/progress"
+              className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
+            >
+              📈 View Progress
+            </Link>
             <button
               onClick={() => setSettingsOpen(true)}
               className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
@@ -163,6 +196,82 @@ export function Dashboard() {
         <p className="mt-3 text-sm text-black/60 dark:text-white/60">
           These settings help EcoStep recommend upgrades tailored to your home size, home type, and the age of your appliances.
         </p>
+      </section>
+
+      <section className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold">Utility bill</h2>
+            <p className="mt-1 text-sm text-black/60 dark:text-white/60">
+              {parsedBill
+                ? "Suggestion cards below now factor in your real electric rate."
+                : "Upload a bill for money-wise verdicts grounded in your real rate, not a generic estimate."}
+            </p>
+          </div>
+          <Button onClick={() => setBillScanOpen(true)}>
+            {parsedBill ? "Update Bill" : "Upload Utility Bill"}
+          </Button>
+        </div>
+
+        {parsedBill ? (
+          <div className="mt-3 flex flex-col gap-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3 dark:border-white/15 dark:bg-white/[0.04]">
+                <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Provider</p>
+                <p className="mt-1 text-sm font-semibold">{parsedBill.providerName ?? "Unknown"}</p>
+              </div>
+              <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3 dark:border-white/15 dark:bg-white/[0.04]">
+                <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Total due</p>
+                <p className="mt-1 text-sm font-semibold">
+                  {parsedBill.totalDueUSD !== null ? currency.format(parsedBill.totalDueUSD) : "Unknown"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3 dark:border-white/15 dark:bg-white/[0.04]">
+                <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Est. rate</p>
+                <p className="mt-1 text-sm font-semibold">
+                  {parsedBill.estimatedRatePerKWh !== null
+                    ? `$${parsedBill.estimatedRatePerKWh.toFixed(3)}/kWh`
+                    : "Unknown"}
+                </p>
+              </div>
+            </div>
+
+            {affordability ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-brand-250/40 bg-brand-50/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-950/35 dark:text-brand-150">
+                  <p className="text-xs uppercase tracking-wide opacity-70">Recommended stack net impact</p>
+                  <p className="mt-1 text-lg font-semibold">
+                    {currency.format(affordability.portfolioMonthlyNetUSD)}/mo
+                  </p>
+                </div>
+                <div className="rounded-xl border border-brand-250/40 bg-brand-50/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-950/35 dark:text-brand-150">
+                  <p className="text-xs uppercase tracking-wide opacity-70">First-year cashflow</p>
+                  <p className="mt-1 text-lg font-semibold">
+                    {currency.format(affordability.portfolioFirstYearCashflowUSD)}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            {parsedBill.warnings.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                {parsedBill.warnings.map((warning) => (
+                  <StatusBadge key={warning} tone="warning">
+                    {warning}
+                  </StatusBadge>
+                ))}
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => setUtilityBill(null)}
+              className="w-fit text-xs text-black/40 underline underline-offset-2 hover:text-black/60 dark:text-white/40 dark:hover:text-white/60"
+            >
+              Remove bill
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <TargetBillSimulator profile={profile} />
@@ -252,6 +361,7 @@ export function Dashboard() {
               profile={profile}
               allSuggestions={activeSuggestions}
               incentiveInsight={incentiveInsightById.get(suggestion.id)}
+              affordabilityScenario={affordabilityById.get(suggestion.id)}
             />
           ))}
           {sorted.length === 0 ? (
@@ -266,13 +376,16 @@ export function Dashboard() {
         <CameraView onClose={() => setCameraOpen(false)} />
       </Modal>
 
+      <Modal open={billScanOpen} onClose={() => setBillScanOpen(false)} title="Upload Utility Bill">
+        <BillScanView onClose={() => setBillScanOpen(false)} />
+      </Modal>
+
       <Settings
         key={`${profile.zipCode}-${profile.currentBillUSD ?? 0}-${profile.targetBillUSD ?? 0}-${profile.homeSizeSqft ?? 0}-${profile.homeType ?? "house"}-${profile.applianceAgeYears ?? 0}-${profile.preference}-${profile.hasSolar ? 1 : 0}`}
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         profile={profile}
         uploadedSuggestions={uploadedSuggestions}
-        acceptedSuggestions={acceptedSuggestions}
         rejectedSuggestions={rejectedSuggestions}
         counterpartSuggestions={counterpartSuggestions}
         onDeleteSuggestion={deleteSuggestion}
