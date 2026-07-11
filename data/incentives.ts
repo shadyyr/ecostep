@@ -2,6 +2,9 @@ import type { IncentiveEntry } from "@/types";
 
 // Localized Incentive & Generation Database (PRD section 5, verbatim).
 // Static seed data for the hackathon MVP — not a live/official incentive feed.
+// Each document's estimatedHours sums to the incentive's total paperwork time —
+// lib/intelligence/incentiveIntelligence.ts derives the total from these rather
+// than storing it separately, so the parts always add up to the whole.
 export const incentives: IncentiveEntry[] = [
   {
     zipCodePrefix: "328",
@@ -9,6 +12,16 @@ export const incentives: IncentiveEntry[] = [
     incentiveName: "Florida Local Utility Energy-Star Upgrade Bonus",
     rebateValueUSD: 350,
     type: "Instant Rebate",
+    eligibility: "Homeowner or renter with utility account approval; Energy Star equipment required.",
+    requiredDocuments: [
+      { name: "Utility account number", estimatedHours: 0.25 },
+      { name: "Paid invoice", estimatedHours: 0.5 },
+      { name: "Energy Star model number", estimatedHours: 0.75 },
+    ],
+    stackable: true,
+    sourceName: "ENERGY STAR Rebate Finder",
+    sourceUrl: "https://www.energystar.gov/rebate-finder",
+    confidenceScore: 0.62,
   },
   {
     zipCodePrefix: "902",
@@ -16,6 +29,16 @@ export const incentives: IncentiveEntry[] = [
     incentiveName: "California Self-Generation Incentive Program (SGIP)",
     rebateValueUSD: 1000,
     type: "Capacity Rebate",
+    eligibility: "Battery storage project in an eligible California utility territory.",
+    requiredDocuments: [
+      { name: "Battery quote", estimatedHours: 0.75 },
+      { name: "Interconnection application", estimatedHours: 1.5 },
+      { name: "Proof of residence", estimatedHours: 0.75 },
+    ],
+    stackable: true,
+    sourceName: "Self-Generation Incentive Program",
+    sourceUrl: "https://www.selfgenca.com/",
+    confidenceScore: 0.68,
   },
   {
     zipCodePrefix: "ANY",
@@ -23,6 +46,16 @@ export const incentives: IncentiveEntry[] = [
     incentiveName: "Commercial Lease/PPA Pass-Through Credit Savings",
     rebateValueUSD: 2500,
     type: "Bill Discount Lease Offset",
+    eligibility: "Lease or PPA offer where the installer passes through part of project value.",
+    requiredDocuments: [
+      { name: "Solar or battery lease proposal", estimatedHours: 0.75 },
+      { name: "Utility bill", estimatedHours: 0.25 },
+      { name: "Roof or site photos", estimatedHours: 1 },
+    ],
+    stackable: false,
+    sourceName: "IRS Residential Clean Energy Credit",
+    sourceUrl: "https://www.irs.gov/credits-deductions/residential-clean-energy-credit",
+    confidenceScore: 0.55,
   },
   {
     zipCodePrefix: "981",
@@ -30,6 +63,17 @@ export const incentives: IncentiveEntry[] = [
     incentiveName: "Seattle Heat Pump Water Heater Upgrade Rebate",
     rebateValueUSD: 400,
     type: "Rebate",
+    eligibility: "Heat pump water heater replacing electric-resistance or fossil-fuel water heating.",
+    requiredDocuments: [
+      { name: "Dated invoice", estimatedHours: 0.5 },
+      { name: "Equipment AHRI certificate", estimatedHours: 0.5 },
+      { name: "Installer license", estimatedHours: 0.25 },
+    ],
+    deadlineISO: "2026-12-31",
+    stackable: true,
+    sourceName: "ENERGY STAR Rebate Finder",
+    sourceUrl: "https://www.energystar.gov/rebate-finder",
+    confidenceScore: 0.7,
   },
   {
     zipCodePrefix: "ANY",
@@ -37,6 +81,15 @@ export const incentives: IncentiveEntry[] = [
     incentiveName: "Home Energy Audit Rebate",
     rebateValueUSD: 100,
     type: "Rebate",
+    eligibility: "Audit or smart thermostat purchase tied to a qualified home-energy assessment.",
+    requiredDocuments: [
+      { name: "Audit report", estimatedHours: 0.5 },
+      { name: "Thermostat receipt", estimatedHours: 0.25 },
+    ],
+    stackable: true,
+    sourceName: "IRS Energy Efficient Home Improvement Credit",
+    sourceUrl: "https://www.irs.gov/credits-deductions/energy-efficient-home-improvement-credit",
+    confidenceScore: 0.6,
   },
   {
     zipCodePrefix: "941",
@@ -44,6 +97,17 @@ export const incentives: IncentiveEntry[] = [
     incentiveName: "Bay Area Electrification Bonus",
     rebateValueUSD: 600,
     type: "Rebate",
+    eligibility: "Fossil-fuel furnace replacement with a qualified heat pump system.",
+    requiredDocuments: [
+      { name: "Contractor quote", estimatedHours: 0.75 },
+      { name: "Decommissioning photo", estimatedHours: 0.5 },
+      { name: "Heat pump model number", estimatedHours: 1.25 },
+    ],
+    deadlineISO: "2026-10-15",
+    stackable: true,
+    sourceName: "BayREN Programs & Rebates",
+    sourceUrl: "https://www.bayren.org/programs-rebates",
+    confidenceScore: 0.66,
   },
   {
     zipCodePrefix: "100",
@@ -51,5 +115,65 @@ export const incentives: IncentiveEntry[] = [
     incentiveName: "NYC Induction Range Incentive",
     rebateValueUSD: 500,
     type: "Rebate",
+    eligibility: "Gas range replacement with induction or electric cooking equipment.",
+    requiredDocuments: [
+      { name: "Gas appliance removal proof", estimatedHours: 0.75 },
+      { name: "Induction range receipt", estimatedHours: 0.75 },
+    ],
+    stackable: true,
+    sourceName: "NYSERDA EmPower+",
+    sourceUrl: "https://www.nyserda.ny.gov/All-Programs/EmPower-New-York-Program",
+    confidenceScore: 0.64,
+  },
+  {
+    zipCodePrefix: "ANY",
+    targetCategory: "Insulation, Weatherization",
+    incentiveName: "Weatherization Readiness Grant",
+    rebateValueUSD: 300,
+    type: "Readiness Grant",
+    eligibility: "Air sealing or insulation project completed before HVAC electrification.",
+    requiredDocuments: [
+      { name: "Before photos", estimatedHours: 0.25 },
+      { name: "Contractor invoice", estimatedHours: 0.5 },
+      { name: "Attic or envelope scope", estimatedHours: 0.25 },
+    ],
+    stackable: true,
+    sourceName: "DOE Home Energy Rebates",
+    sourceUrl: "https://www.energy.gov/cmei/scep/home-energy-rebates-program",
+    confidenceScore: 0.58,
+  },
+  {
+    zipCodePrefix: "ANY",
+    targetCategory: "Electrical Panel",
+    incentiveName: "Electrical Readiness Upgrade Credit",
+    rebateValueUSD: 750,
+    type: "Tax Credit",
+    eligibility: "Panel upgrade that enables qualified electrification equipment.",
+    requiredDocuments: [
+      { name: "Panel permit", estimatedHours: 1 },
+      { name: "Electrician invoice", estimatedHours: 0.5 },
+      { name: "Linked equipment quote", estimatedHours: 0.5 },
+    ],
+    stackable: true,
+    sourceName: "IRS Energy Efficient Home Improvement Credit",
+    sourceUrl: "https://www.irs.gov/credits-deductions/energy-efficient-home-improvement-credit",
+    confidenceScore: 0.57,
+  },
+  {
+    zipCodePrefix: "ANY",
+    targetCategory: "Furnace, HVAC, Heat Pump, AC Condenser, Air Conditioner",
+    incentiveName: "High-Efficiency Heat Pump Accelerator",
+    rebateValueUSD: 1200,
+    type: "Performance Rebate",
+    eligibility: "Qualified heat pump installation sized for the home load.",
+    requiredDocuments: [
+      { name: "Manual J or load estimate", estimatedHours: 1.25 },
+      { name: "AHRI certificate", estimatedHours: 0.5 },
+      { name: "Installer invoice", estimatedHours: 0.5 },
+    ],
+    stackable: true,
+    sourceName: "DOE Home Energy Rebates",
+    sourceUrl: "https://www.energy.gov/cmei/scep/home-energy-rebates-program",
+    confidenceScore: 0.61,
   },
 ];

@@ -11,36 +11,29 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+function applyTheme(scheme: ColorScheme) {
+  const html = document.documentElement;
+  if (scheme === "system") {
+    html.removeAttribute("data-theme");
+  } else {
+    html.setAttribute("data-theme", scheme);
+  }
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [colorScheme, setColorSchemeState] = useState<ColorScheme>("system");
-  const [mounted, setMounted] = useState(false);
+  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(() => {
+    if (typeof window === "undefined") return "system";
+    return (localStorage.getItem("colorScheme") as ColorScheme | null) ?? "system";
+  });
 
   useEffect(() => {
-    // Load saved preference
-    const saved = localStorage.getItem("colorScheme") as ColorScheme | null;
-    if (saved) {
-      setColorSchemeState(saved);
-      applyTheme(saved);
-    }
-    setMounted(true);
-  }, []);
+    applyTheme(colorScheme);
+  }, [colorScheme]);
 
   const setColorScheme = (scheme: ColorScheme) => {
     setColorSchemeState(scheme);
     localStorage.setItem("colorScheme", scheme);
-    applyTheme(scheme);
   };
-
-  const applyTheme = (scheme: ColorScheme) => {
-    const html = document.documentElement;
-    if (scheme === "system") {
-      html.removeAttribute("data-theme");
-    } else {
-      html.setAttribute("data-theme", scheme);
-    }
-  };
-
-  if (!mounted) return <>{children}</>;
 
   return (
     <ThemeContext.Provider value={{ colorScheme, setColorScheme }}>

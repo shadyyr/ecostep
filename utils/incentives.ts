@@ -38,7 +38,31 @@ export function withAppliedIncentives(suggestion: Suggestion, zipCode: string): 
   const appliedIncentives: AppliedIncentive[] = getMatchingIncentives(
     suggestion.category,
     zipCode
-  ).map(({ incentiveName, rebateValueUSD, type }) => ({ incentiveName, rebateValueUSD, type }));
+  ).map(
+    ({
+      incentiveName,
+      rebateValueUSD,
+      type,
+      eligibility,
+      sourceName,
+      sourceUrl,
+      deadlineISO,
+      requiredDocuments,
+      confidenceScore,
+      stackable,
+    }) => ({
+      incentiveName,
+      rebateValueUSD,
+      type,
+      eligibility,
+      sourceLabel: sourceName,
+      sourceUrl,
+      deadlineISO,
+      requiredDocuments,
+      confidenceScore,
+      stackable,
+    })
+  );
   return { ...suggestion, appliedIncentives };
 }
 
