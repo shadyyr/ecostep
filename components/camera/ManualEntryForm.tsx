@@ -67,7 +67,7 @@ export function ManualEntryForm({ onSubmit, onCancel }: ManualEntryFormProps) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm font-medium">
-        Model type
+        Model Type
         <input
           type="text"
           value={modelType}
