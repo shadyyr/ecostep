@@ -19,8 +19,8 @@ export function RejectButton({ onReject }: { onReject: () => void }) {
       <Button type="button" variant="danger" onClick={onReject}>
         Reject
       </Button>
-      <Button type="button" variant="ghost" onClick={() => setKept(true)}>
-        I Need This
+      <Button type="button" variant="success" onClick={() => setKept(true)}>
+        Accept
       </Button>
     </div>
   );
