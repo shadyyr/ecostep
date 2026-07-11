@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence } from "motion/react";
 import { useAppState } from "@/context/AppStateContext";
 import {
   calculateEcoScore,
@@ -23,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/Badge";
 import { AccountMenu } from "@/components/auth/AccountMenu";
 import { Settings } from "@/components/dashboard/Settings";
+import { BrandMark } from "@/components/ui/BrandMark";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -150,11 +152,14 @@ export function Dashboard() {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
       <header className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-brand-900 dark:text-brand-250">
-            Your EcoStep Roadmap
-          </h1>
-          <p className="text-sm text-black/50 dark:text-white/50">Zip {profile.zipCode}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          <BrandMark size="md" variant="plain" priority />
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold text-brand-900 dark:text-brand-250">
+              Your EcoStep Roadmap
+            </h1>
+            <p className="text-sm text-black/50 dark:text-white/50">Zip {profile.zipCode}</p>
+          </div>
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="flex gap-2">
@@ -375,19 +380,21 @@ export function Dashboard() {
         </div>
         <SortTabs value={sortMode} onChange={setSortMode} />
         <div className="flex flex-col gap-3">
-          {sorted.map((suggestion) => (
-            <SuggestionCard
-              key={suggestion.id}
-              suggestion={suggestion}
-              onReject={rejectSuggestion}
-              onAccept={toggleAccepted}
-              profile={profile}
-              allSuggestions={activeSuggestions}
-              incentiveInsight={incentiveInsightById.get(suggestion.id)}
-              affordabilityScenario={affordabilityById.get(suggestion.id)}
-              anchorId={`suggestion-${suggestion.id}`}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {sorted.map((suggestion) => (
+              <SuggestionCard
+                key={suggestion.id}
+                suggestion={suggestion}
+                onReject={rejectSuggestion}
+                onAccept={toggleAccepted}
+                profile={profile}
+                allSuggestions={activeSuggestions}
+                incentiveInsight={incentiveInsightById.get(suggestion.id)}
+                affordabilityScenario={affordabilityById.get(suggestion.id)}
+                anchorId={`suggestion-${suggestion.id}`}
+              />
+            ))}
+          </AnimatePresence>
           {sorted.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-black/10 p-6 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
               No appliances to review. Scan an appliance to get started.

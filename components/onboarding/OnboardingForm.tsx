@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useAppState } from "@/context/AppStateContext";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { BrandMark } from "@/components/ui/BrandMark";
 import type { RecommendationPreference } from "@/types";
 
 const ZIP_PATTERN = /^\d{5}$/;
@@ -45,6 +46,7 @@ export function OnboardingForm() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-10">
       <div className="mb-8 text-center">
+        <BrandMark size="lg" priority className="mx-auto mb-4" />
         <h1 className="text-2xl font-semibold tracking-tight text-brand-900 dark:text-brand-250">
           Welcome to EcoStep
         </h1>

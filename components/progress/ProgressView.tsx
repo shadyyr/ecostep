@@ -2,10 +2,12 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "motion/react";
 import { useAppState } from "@/context/AppStateContext";
 import { buildSavingsProjection, DEFAULT_RATE_PER_KWH } from "@/utils/progress";
 import { SavingsChart } from "@/components/progress/SavingsChart";
 import { Card } from "@/components/ui/Card";
+import { BrandMark } from "@/components/ui/BrandMark";
 import type { Suggestion } from "@/types";
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -43,9 +45,12 @@ export function ProgressView() {
         >
           ← Back to Dashboard
         </Link>
-        <h1 className="mt-2 text-xl font-semibold text-brand-900 dark:text-brand-250">
-          Your Progress
-        </h1>
+        <div className="mt-2 flex items-center gap-3">
+          <BrandMark size="sm" />
+          <h1 className="text-xl font-semibold text-brand-900 dark:text-brand-250">
+            Your Progress
+          </h1>
+        </div>
         <p className="mt-1 text-sm text-black/50 dark:text-white/50">
           {acceptedSuggestions.length > 0
             ? `Projected impact of your ${acceptedSuggestions.length} accepted ${acceptedSuggestions.length === 1 ? "upgrade" : "upgrades"}.`
@@ -82,13 +87,15 @@ export function ProgressView() {
           </p>
         ) : (
           <div className="flex flex-col gap-3">
-            {acceptedSuggestions.map((suggestion) => (
-              <AcceptedProgressCard
-                key={suggestion.id}
-                suggestion={suggestion}
-                onRemove={() => toggleAccepted(suggestion.id)}
-              />
-            ))}
+            <AnimatePresence initial={false}>
+              {acceptedSuggestions.map((suggestion) => (
+                <AcceptedProgressCard
+                  key={suggestion.id}
+                  suggestion={suggestion}
+                  onRemove={() => toggleAccepted(suggestion.id)}
+                />
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </section>
@@ -104,39 +111,47 @@ function AcceptedProgressCard({
   onRemove: () => void;
 }) {
   return (
-    <Card className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <h3 className="truncate text-base font-semibold text-brand-900 dark:text-brand-150">
-          {suggestion.shortName}
-        </h3>
-        <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-          {suggestion.title}
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <div className="text-xs text-black/50 dark:text-white/50">Monthly savings</div>
-            <div className="font-medium text-status-good">
-              {currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+    >
+      <Card className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate text-base font-semibold text-brand-900 dark:text-brand-150">
+            {suggestion.shortName}
+          </h3>
+          <p className="mt-1 text-sm text-black/60 dark:text-white/60">
+            {suggestion.title}
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <div className="text-xs text-black/50 dark:text-white/50">Monthly savings</div>
+              <div className="font-medium text-status-good">
+                {currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="text-xs text-black/50 dark:text-white/50">Efficiency improvement</div>
-            <div className="font-medium text-brand-700 dark:text-brand-250">
-              {suggestion.conversionEfficiencyPct}%
+            <div>
+              <div className="text-xs text-black/50 dark:text-white/50">Efficiency improvement</div>
+              <div className="font-medium text-brand-700 dark:text-brand-250">
+                {suggestion.conversionEfficiencyPct}%
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label={`Remove ${suggestion.shortName} from progress`}
-        title="Remove from progress"
-        className="shrink-0 rounded-full border border-black/10 p-2 text-black/50 transition-colors hover:border-status-critical/40 hover:bg-status-critical/10 hover:text-status-critical dark:border-white/15 dark:text-white/60 dark:hover:border-status-critical/50 dark:hover:bg-status-critical/10 dark:hover:text-status-critical"
-      >
-        <TrashIcon />
-      </button>
-    </Card>
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`Remove ${suggestion.shortName} from progress`}
+          title="Remove from progress"
+          className="shrink-0 rounded-full border border-black/10 p-2 text-black/50 transition-colors hover:border-status-critical/40 hover:bg-status-critical/10 hover:text-status-critical dark:border-white/15 dark:text-white/60 dark:hover:border-status-critical/50 dark:hover:bg-status-critical/10 dark:hover:text-status-critical"
+        >
+          <TrashIcon />
+        </button>
+      </Card>
+    </motion.div>
   );
 }
 
