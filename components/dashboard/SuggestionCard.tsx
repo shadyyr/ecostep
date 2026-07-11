@@ -39,7 +39,7 @@ export function SuggestionCard({ suggestion, onReject, onToggleApplied }: Sugges
               onClick={() => setShowDetails(true)}
               className="text-left hover:opacity-80 transition-opacity"
             >
-              <h3 className="text-base font-semibold text-brand-600 dark:text-brand-300 underline underline-offset-2">
+              <h3 className="text-base font-semibold text-brand-900 dark:text-brand-100 underline underline-offset-2">
                 {suggestion.shortName}
               </h3>
             </button>
