@@ -253,7 +253,7 @@ export function Settings({
                       className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
+                        <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-250">
                           {suggestion.shortName}
                         </p>
                         <p className="text-xs text-black/45 dark:text-white/45">
@@ -302,7 +302,7 @@ export function Settings({
                         className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
+                          <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-250">
                             {suggestion.shortName}
                           </p>
                           <p className="text-xs text-black/45 dark:text-white/45">

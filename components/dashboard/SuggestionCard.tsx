@@ -228,7 +228,7 @@ export function SuggestionCard({
         ) : null}
 
         {suggestion.reason ? (
-          <div className="rounded-lg border border-brand-250/40 bg-brand-50/70 px-3 py-2 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-950/35 dark:text-brand-150">
+          <div className="rounded-lg border border-brand-250/40 bg-brand-100/70 px-3 py-2 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-900/35 dark:text-brand-250">
             {suggestion.reason}
           </div>
         ) : null}
@@ -250,7 +250,7 @@ export function SuggestionCard({
 
       <Modal open={showDetails} onClose={() => setShowDetails(false)} title={suggestion.shortName}>
         <div className="flex flex-col gap-4">
-          <div className="rounded-lg bg-brand-50 p-4 dark:bg-brand-950">
+          <div className="rounded-lg bg-brand-100 p-4 dark:bg-brand-900">
             <p className="text-base leading-relaxed text-black dark:text-white">
               {suggestion.description}
             </p>
