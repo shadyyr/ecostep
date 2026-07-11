@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import type { EcoScoreBreakdown } from "@/types";
 
 const SIZE = 140;
@@ -7,6 +11,18 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 function arcOffset(percent: number) {
   return CIRCUMFERENCE * (1 - percent / 100);
+}
+
+function AnimatedScore({ value }: { value: number }) {
+  const motionValue = useMotionValue(value);
+  const spring = useSpring(motionValue, { stiffness: 110, damping: 20 });
+  const rounded = useTransform(spring, (v) => Math.round(v));
+
+  useEffect(() => {
+    motionValue.set(value);
+  }, [value, motionValue]);
+
+  return <motion.span>{rounded}</motion.span>;
 }
 
 interface EcoScoreDisplayProps {
@@ -57,7 +73,7 @@ export function EcoScoreDisplay({ breakdown, potentialScore }: EcoScoreDisplayPr
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-5xl font-semibold tabular-nums text-brand-900 dark:text-brand-250">
-            {score}
+            <AnimatedScore value={score} />
           </span>
           <span className="text-xs text-black/50 dark:text-white/50">EcoScore</span>
           {possibleGain > 0 ? (
