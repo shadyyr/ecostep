@@ -4,26 +4,21 @@ import { useState } from "react";
 import type { Suggestion } from "@/types";
 import { useTheme } from "@/context/ThemeContext";
 import { Modal } from "@/components/ui/Modal";
-import { SuggestionCard } from "@/components/dashboard/SuggestionCard";
 
 interface SettingsProps {
   open: boolean;
   onClose: () => void;
   uploadedSuggestions: Suggestion[];
-  acceptedSuggestions: Suggestion[];
   onRejectSuggestion: (id: string) => void;
-  onToggleAccepted: (id: string) => void;
 }
 
-type SettingsTab = "display" | "uploaded" | "accepted";
+type SettingsTab = "display" | "uploaded";
 
 export function Settings({
   open,
   onClose,
   uploadedSuggestions,
-  acceptedSuggestions,
   onRejectSuggestion,
-  onToggleAccepted,
 }: SettingsProps) {
   const { colorScheme, setColorScheme } = useTheme();
   const [activeTab, setActiveTab] = useState<SettingsTab>("display");
@@ -31,7 +26,6 @@ export function Settings({
   const tabs: Array<{ id: SettingsTab; label: string; count?: number }> = [
     { id: "display", label: "Display" },
     { id: "uploaded", label: "Uploaded Appliances", count: uploadedSuggestions.length },
-    { id: "accepted", label: "Accepted Appliances", count: acceptedSuggestions.length },
   ];
 
   return (
@@ -116,25 +110,6 @@ export function Settings({
                       🗑️
                     </button>
                   </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {activeTab === "accepted" && (
-            <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto">
-              {acceptedSuggestions.length === 0 ? (
-                <p className="text-sm text-black/50 dark:text-white/50">
-                  No accepted appliances yet. Accept suggestions to see them here.
-                </p>
-              ) : (
-                acceptedSuggestions.map((suggestion) => (
-                  <SuggestionCard
-                    key={suggestion.id}
-                    suggestion={suggestion}
-                    onReject={() => onRejectSuggestion(suggestion.id)}
-                    onAccept={() => onToggleAccepted(suggestion.id)}
-                  />
                 ))
               )}
             </div>

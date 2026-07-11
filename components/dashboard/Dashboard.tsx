@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useAppState } from "@/context/AppStateContext";
 import {
   calculateEcoScore,
@@ -60,11 +61,6 @@ export function Dashboard() {
 
   const recommendedSuggestions = useMemo(
     () => activeSuggestions.filter((s) => s.source === "mock" && !s.accepted),
-    [activeSuggestions]
-  );
-
-  const acceptedSuggestions = useMemo(
-    () => activeSuggestions.filter((s) => s.source === "mock" && s.accepted),
     [activeSuggestions]
   );
 
@@ -135,6 +131,12 @@ export function Dashboard() {
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="flex gap-2">
+            <Link
+              href="/progress"
+              className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
+            >
+              📈 View Progress
+            </Link>
             <button
               onClick={() => setSettingsOpen(true)}
               className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
@@ -362,9 +364,7 @@ export function Dashboard() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         uploadedSuggestions={uploadedSuggestions}
-        acceptedSuggestions={acceptedSuggestions}
         onRejectSuggestion={rejectSuggestion}
-        onToggleAccepted={toggleAccepted}
       />
 
       <footer className="pt-2 pb-6 text-center">
