@@ -5,20 +5,30 @@ import type { Suggestion } from "@/types";
 import { useTheme } from "@/context/ThemeContext";
 import { Modal } from "@/components/ui/Modal";
 
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
 interface SettingsProps {
   open: boolean;
   onClose: () => void;
   uploadedSuggestions: Suggestion[];
+  rejectedSuggestions: Suggestion[];
   onRejectSuggestion: (id: string) => void;
+  onRestoreRejectedSuggestions: () => void;
 }
 
-type SettingsTab = "display" | "uploaded";
+type SettingsTab = "display" | "uploaded" | "rejected";
 
 export function Settings({
   open,
   onClose,
   uploadedSuggestions,
+  rejectedSuggestions,
   onRejectSuggestion,
+  onRestoreRejectedSuggestions,
 }: SettingsProps) {
   const { colorScheme, setColorScheme } = useTheme();
   const [activeTab, setActiveTab] = useState<SettingsTab>("display");
@@ -26,6 +36,7 @@ export function Settings({
   const tabs: Array<{ id: SettingsTab; label: string; count?: number }> = [
     { id: "display", label: "Display" },
     { id: "uploaded", label: "Uploaded Appliances", count: uploadedSuggestions.length },
+    { id: "rejected", label: "Rejected", count: rejectedSuggestions.length },
   ];
 
   return (
@@ -111,6 +122,39 @@ export function Settings({
                     </button>
                   </div>
                 ))
+              )}
+            </div>
+          )}
+
+          {activeTab === "rejected" && (
+            <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto">
+              {rejectedSuggestions.length === 0 ? (
+                <p className="text-sm text-black/50 dark:text-white/50">
+                  No rejected appliances right now.
+                </p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={onRestoreRejectedSuggestions}
+                    className="w-fit rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-900"
+                  >
+                    Restore all rejected appliances
+                  </button>
+                  {rejectedSuggestions.map((suggestion) => (
+                    <div
+                      key={suggestion.id}
+                      className="rounded-xl border border-black/10 bg-black/[0.02] px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]"
+                    >
+                      <p className="truncate text-sm font-medium text-brand-900 dark:text-brand-150">
+                        {suggestion.shortName}
+                      </p>
+                      <p className="text-xs text-black/45 dark:text-white/45">
+                        {suggestion.category} • {currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
+                      </p>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           )}

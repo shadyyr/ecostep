@@ -31,8 +31,17 @@ const currency = new Intl.NumberFormat("en-US", {
 });
 
 export function Dashboard() {
-  const { profile, activeSuggestions, rejectSuggestion, toggleAccepted, resetAll, parsedBill, setUtilityBill } =
-    useAppState();
+  const {
+    profile,
+    suggestions,
+    activeSuggestions,
+    rejectSuggestion,
+    restoreRejectedSuggestions,
+    toggleAccepted,
+    resetAll,
+    parsedBill,
+    setUtilityBill,
+  } = useAppState();
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -57,6 +66,11 @@ export function Dashboard() {
   const uploadedSuggestions = useMemo(
     () => activeSuggestions.filter((s) => s.source === "gemini" || s.source === "manual"),
     [activeSuggestions]
+  );
+
+  const rejectedSuggestions = useMemo(
+    () => suggestions.filter((s) => s.rejected),
+    [suggestions]
   );
 
   const recommendedSuggestions = useMemo(
@@ -85,6 +99,17 @@ export function Dashboard() {
     () => (profile ? getPersonalizedNextAction(activeSuggestions, profile, profile.targetBillUSD) : null),
     [activeSuggestions, profile]
   );
+
+  const nextActionAnchorId = nextAction ? `suggestion-${nextAction.id}` : null;
+  const nextActionIsVisible = nextAction
+    ? sorted.some((suggestion) => suggestion.id === nextAction.id)
+    : false;
+  const nextActionAlreadyUploaded = nextAction
+    ? uploadedSuggestions.some(
+        (suggestion) =>
+          suggestion.id === nextAction.id || suggestion.category === nextAction.category
+      )
+    : false;
 
   const incentiveInsightById = useMemo(() => {
     if (!profile) return new Map();
@@ -167,14 +192,14 @@ export function Dashboard() {
             <p className="mt-1 text-lg font-semibold">{currency.format(profile.targetBillUSD ?? 0)}</p>
           </div>
           <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/15 dark:bg-white/[0.04]">
-            <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Home profile</p>
-            <p className="mt-1 text-sm text-black/70 dark:text-white/70">
-              {profile.homeSizeSqft} sqft • {profile.homeType} • {profile.applianceAgeYears} yrs old
+            <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Home type</p>
+            <p className="mt-1 text-sm capitalize text-black/70 dark:text-white/70">
+              {profile.homeType ?? "House"}
             </p>
           </div>
         </div>
         <p className="mt-3 text-sm text-black/60 dark:text-white/60">
-          These settings help EcoStep recommend upgrades tailored to your home size, home type, and the age of your appliances.
+          These settings help EcoStep recommend upgrades tailored to your home type and budget.
         </p>
       </section>
 
@@ -264,9 +289,25 @@ export function Dashboard() {
 
         {nextAction ? (
           <div className="mt-3 rounded-xl border border-brand-250/40 bg-brand-50/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-950/35 dark:text-brand-150">
-            <p className="font-semibold">Best next action: {nextAction.title}</p>
+            <p className="font-semibold">
+              Best next action:{" "}
+              {nextActionIsVisible && nextActionAnchorId ? (
+                <Link
+                  href={`#${nextActionAnchorId}`}
+                  className="underline underline-offset-2 hover:text-brand-600 dark:hover:text-brand-250"
+                >
+                  {nextAction.title}
+                </Link>
+              ) : (
+                nextAction.title
+              )}
+            </p>
             <p className="mt-1 text-xs text-black/60 dark:text-white/60">
-              This is the upgrade most likely to move your home closer to your target bill and preferences.
+              {nextActionIsVisible
+                ? "Jump to the matching item in the list below to review it."
+                : nextActionAlreadyUploaded
+                  ? "You already have this appliance in your uploaded appliances."
+                  : "This is the upgrade most likely to move your home closer to your target bill and preferences."}
             </p>
           </div>
         ) : null}
@@ -342,6 +383,7 @@ export function Dashboard() {
               allSuggestions={activeSuggestions}
               incentiveInsight={incentiveInsightById.get(suggestion.id)}
               affordabilityScenario={affordabilityById.get(suggestion.id)}
+              anchorId={`suggestion-${suggestion.id}`}
             />
           ))}
           {sorted.length === 0 ? (
@@ -364,7 +406,9 @@ export function Dashboard() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         uploadedSuggestions={uploadedSuggestions}
+        rejectedSuggestions={rejectedSuggestions}
         onRejectSuggestion={rejectSuggestion}
+        onRestoreRejectedSuggestions={restoreRejectedSuggestions}
       />
 
       <footer className="pt-2 pb-6 text-center">

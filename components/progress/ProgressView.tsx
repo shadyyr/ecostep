@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useAppState } from "@/context/AppStateContext";
 import { buildSavingsProjection, DEFAULT_RATE_PER_KWH } from "@/utils/progress";
 import { SavingsChart } from "@/components/progress/SavingsChart";
-import { SuggestionCard } from "@/components/dashboard/SuggestionCard";
+import { Card } from "@/components/ui/Card";
+import type { Suggestion } from "@/types";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -16,7 +17,7 @@ const currency = new Intl.NumberFormat("en-US", {
 const kwhFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 export function ProgressView() {
-  const { activeSuggestions, rejectSuggestion, toggleAccepted, parsedBill } = useAppState();
+  const { activeSuggestions, toggleAccepted, parsedBill } = useAppState();
 
   const acceptedSuggestions = useMemo(
     () => activeSuggestions.filter((s) => s.accepted),
@@ -82,16 +83,80 @@ export function ProgressView() {
         ) : (
           <div className="flex flex-col gap-3">
             {acceptedSuggestions.map((suggestion) => (
-              <SuggestionCard
+              <AcceptedProgressCard
                 key={suggestion.id}
                 suggestion={suggestion}
-                onReject={() => rejectSuggestion(suggestion.id)}
-                onAccept={() => toggleAccepted(suggestion.id)}
+                onRemove={() => toggleAccepted(suggestion.id)}
               />
             ))}
           </div>
         )}
       </section>
     </div>
+  );
+}
+
+function AcceptedProgressCard({
+  suggestion,
+  onRemove,
+}: {
+  suggestion: Suggestion;
+  onRemove: () => void;
+}) {
+  return (
+    <Card className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h3 className="truncate text-base font-semibold text-brand-900 dark:text-brand-150">
+          {suggestion.shortName}
+        </h3>
+        <p className="mt-1 text-sm text-black/60 dark:text-white/60">
+          {suggestion.title}
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <div className="text-xs text-black/50 dark:text-white/50">Monthly savings</div>
+            <div className="font-medium text-status-good">
+              {currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-black/50 dark:text-white/50">Efficiency improvement</div>
+            <div className="font-medium text-brand-700 dark:text-brand-250">
+              {suggestion.conversionEfficiencyPct}%
+            </div>
+          </div>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${suggestion.shortName} from progress`}
+        title="Remove from progress"
+        className="shrink-0 rounded-full border border-black/10 p-2 text-black/50 transition-colors hover:border-status-critical/40 hover:bg-status-critical/10 hover:text-status-critical dark:border-white/15 dark:text-white/60 dark:hover:border-status-critical/50 dark:hover:bg-status-critical/10 dark:hover:text-status-critical"
+      >
+        <TrashIcon />
+      </button>
+    </Card>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v5" />
+      <path d="M14 11v5" />
+    </svg>
   );
 }
