@@ -63,7 +63,7 @@ export function SuggestionCard({ suggestion, onReject, onToggleApplied }: Sugges
             </div>
           </div>
           <div>
-            <div className="text-xs text-black/50 dark:text-white/50">Cost after incentives</div>
+            <div className="text-xs text-black/50 dark:text-white/50">Appliance Cost</div>
             <div className="font-medium">
               {currency.format(effectivePrice)}
               {totalRebate > 0 ? (
@@ -116,7 +116,7 @@ export function SuggestionCard({ suggestion, onReject, onToggleApplied }: Sugges
               </div>
             </div>
             <div>
-              <div className="text-xs text-black/50 dark:text-white/50 mb-1">Cost after incentives</div>
+              <div className="text-xs text-black/50 dark:text-white/50 mb-1">Appliance Cost</div>
               <div className="text-lg font-semibold">
                 {currency.format(effectivePrice)}
               </div>
