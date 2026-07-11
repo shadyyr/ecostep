@@ -12,6 +12,7 @@ import { TargetBillSimulator } from "@/components/dashboard/TargetBillSimulator"
 import { CameraView } from "@/components/camera/CameraView";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { AccountMenu } from "@/components/auth/AccountMenu";
 
 export function Dashboard() {
   const { profile, activeSuggestions, rejectSuggestion, toggleAccepted, resetAll } =
@@ -61,7 +62,10 @@ export function Dashboard() {
           </h1>
           <p className="text-sm text-black/50 dark:text-white/50">Zip {profile.zipCode}</p>
         </div>
-        <Button onClick={() => setCameraOpen(true)}>Scan an Appliance</Button>
+        <div className="flex flex-col items-end gap-2">
+          <AccountMenu />
+          <Button onClick={() => setCameraOpen(true)}>Scan an Appliance</Button>
+        </div>
       </header>
 
       {ecoScore ? (
