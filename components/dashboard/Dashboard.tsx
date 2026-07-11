@@ -27,7 +27,7 @@ const currency = new Intl.NumberFormat("en-US", {
 });
 
 export function Dashboard() {
-  const { profile, activeSuggestions, rejectSuggestion, toggleAccepted, resetAll } =
+  const { profile, activeSuggestions, suggestions, rejectSuggestion, deleteSuggestion, toggleAccepted, resetAll, setProfile } =
     useAppState();
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -61,6 +61,16 @@ export function Dashboard() {
 
   const acceptedSuggestions = useMemo(
     () => activeSuggestions.filter((s) => s.source === "mock" && s.accepted),
+    [activeSuggestions]
+  );
+
+  const rejectedSuggestions = useMemo(
+    () => suggestions.filter((s) => s.rejected),
+    [suggestions]
+  );
+
+  const counterpartSuggestions = useMemo(
+    () => activeSuggestions.filter((s) => s.source === "mock"),
     [activeSuggestions]
   );
 
@@ -164,8 +174,8 @@ export function Dashboard() {
         </p>
 
         {nextAction ? (
-          <div className="mt-3 rounded-xl border border-brand-250/40 bg-brand-50/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-950/35 dark:text-brand-150">
-            <p className="font-semibold">Best next action: {nextAction.title}</p>
+          <div className="mt-3 rounded-xl border border-brand-250/40 bg-brand-50/70 p-3 text-sm text-brand-900 dark:border-brand-250/30 dark:bg-brand-950/35 dark:text-white">
+            <p className="font-semibold text-brand-900 dark:text-brand-100">Best next action: {nextAction.title}</p>
             <p className="mt-1 text-xs text-black/60 dark:text-white/60">
               This is the upgrade most likely to move your home closer to your target bill and preferences.
             </p>
@@ -257,12 +267,16 @@ export function Dashboard() {
       </Modal>
 
       <Settings
+        key={`${profile.zipCode}-${profile.currentBillUSD ?? 0}-${profile.targetBillUSD ?? 0}-${profile.homeSizeSqft ?? 0}-${profile.homeType ?? "house"}-${profile.applianceAgeYears ?? 0}-${profile.preference}-${profile.hasSolar ? 1 : 0}`}
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        profile={profile}
         uploadedSuggestions={uploadedSuggestions}
         acceptedSuggestions={acceptedSuggestions}
-        onRejectSuggestion={rejectSuggestion}
-        onToggleAccepted={toggleAccepted}
+        rejectedSuggestions={rejectedSuggestions}
+        counterpartSuggestions={counterpartSuggestions}
+        onDeleteSuggestion={deleteSuggestion}
+        onUpdateProfile={setProfile}
       />
 
       <footer className="pt-2 pb-6 text-center">

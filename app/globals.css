@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7faf8;
-  --foreground: #171717;
+  --background: #ffffff;
+  --foreground: #0f172a;
 
   /* Single-hue blue ramp: EcoScore meter, conversion-efficiency bars, tier badges. */
   --color-brand-100: #cde2fb;
@@ -41,16 +41,69 @@
 
 /* Explicit light theme */
 :root[data-theme="light"] {
-  --background: #f7faf8;
-  --foreground: #171717;
+  --background: #ffffff;
+  --foreground: #090f1a;
   color-scheme: light;
+}
+
+:root[data-theme="light"] .text-black\/40 {
+  color: rgb(15 23 42 / 0.72) !important;
+}
+
+:root[data-theme="light"] .text-black\/45 {
+  color: rgb(15 23 42 / 0.76) !important;
+}
+
+:root[data-theme="light"] .text-black\/50 {
+  color: rgb(15 23 42 / 0.8) !important;
+}
+
+:root[data-theme="light"] .text-black\/60 {
+  color: rgb(15 23 42 / 0.9) !important;
+}
+
+:root[data-theme="light"] .text-black\/70 {
+  color: rgb(15 23 42 / 0.94) !important;
+}
+
+:root[data-theme="light"] .text-black\/80,
+:root[data-theme="light"] .text-black\/85,
+:root[data-theme="light"] .text-black\/90 {
+  color: rgb(2 6 23 / 0.96) !important;
+}
+
+:root[data-theme="light"] .border-black\/10,
+:root[data-theme="light"] .border-black\/15,
+:root[data-theme="light"] .border-black\/20,
+:root[data-theme="light"] .border-black\/25,
+:root[data-theme="light"] .border-black\/30,
+:root[data-theme="light"] .border-black\/35 {
+  border-color: rgb(15 23 42 / 0.3) !important;
+}
+
+:root[data-theme="light"] .bg-black\/\[0\.02\],
+:root[data-theme="light"] .bg-black\/\[0\.03\],
+:root[data-theme="light"] .bg-black\/\[0\.04\] {
+  background-color: rgb(15 23 42 / 0.05) !important;
 }
 
 /* Explicit dark theme */
 :root[data-theme="dark"] {
   --background: #0a0f0c;
-  --foreground: #ededed;
+  --foreground: #f3f4f6;
   color-scheme: dark;
+}
+
+:root[data-theme="dark"] .text-white\/60 {
+  color: rgb(255 255 255 / 0.82) !important;
+}
+
+:root[data-theme="dark"] .text-white\/70 {
+  color: rgb(255 255 255 / 0.86) !important;
+}
+
+:root[data-theme="dark"] .text-white\/80 {
+  color: rgb(255 255 255 / 0.9) !important;
 }
 
 body {
