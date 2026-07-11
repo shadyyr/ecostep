@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
 import { simulateTargetBill } from "@/utils/calculations";
 import { useAppState } from "@/context/AppStateContext";
+import type { UserProfile } from "@/types";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -12,10 +13,23 @@ const currency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-export function TargetBillSimulator() {
+interface TargetBillSimulatorProps {
+  profile?: UserProfile | null;
+}
+
+export function TargetBillSimulator({ profile }: TargetBillSimulatorProps) {
   const { activeSuggestions } = useAppState();
-  const [currentBill, setCurrentBill] = useState(100);
-  const [targetBill, setTargetBill] = useState(75);
+  const [currentBill, setCurrentBill] = useState(profile?.currentBillUSD ?? 100);
+  const [targetBill, setTargetBill] = useState(profile?.targetBillUSD ?? 75);
+  const [syncedProfile, setSyncedProfile] = useState(profile);
+
+  if (profile !== syncedProfile) {
+    setSyncedProfile(profile);
+    if (profile) {
+      setCurrentBill(profile.currentBillUSD ?? currentBill);
+      setTargetBill(profile.targetBillUSD ?? targetBill);
+    }
+  }
 
   const result = useMemo(
     () =>

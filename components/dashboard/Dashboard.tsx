@@ -18,6 +18,7 @@ import { CameraView } from "@/components/camera/CameraView";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { AccountMenu } from "@/components/auth/AccountMenu";
+import { Settings } from "@/components/dashboard/Settings";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -30,6 +31,7 @@ export function Dashboard() {
     useAppState();
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   function handleReset() {
     if (window.confirm("Reset EcoStep? This clears your profile and roadmap.")) {
@@ -48,21 +50,26 @@ export function Dashboard() {
   );
 
   const uploadedSuggestions = useMemo(
-    () => activeSuggestions.filter((s) => !s.accepted),
+    () => activeSuggestions.filter((s) => s.source === "gemini" || s.source === "manual"),
+    [activeSuggestions]
+  );
+
+  const recommendedSuggestions = useMemo(
+    () => activeSuggestions.filter((s) => s.source === "mock" && !s.accepted),
     [activeSuggestions]
   );
 
   const acceptedSuggestions = useMemo(
-    () => activeSuggestions.filter((s) => s.accepted),
+    () => activeSuggestions.filter((s) => s.source === "mock" && s.accepted),
     [activeSuggestions]
   );
 
   const sorted = useMemo(
     () =>
       profile
-        ? sortSuggestionsForProfile(uploadedSuggestions, profile, sortMode, profile.targetBillUSD)
-        : uploadedSuggestions,
-    [uploadedSuggestions, profile, sortMode]
+        ? sortSuggestionsForProfile(recommendedSuggestions, profile, sortMode, profile.targetBillUSD)
+        : recommendedSuggestions,
+    [recommendedSuggestions, profile, sortMode]
   );
 
   const roadmapSteps = useMemo(() => {
@@ -106,7 +113,15 @@ export function Dashboard() {
           <p className="text-sm text-black/50 dark:text-white/50">Zip {profile.zipCode}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <AccountMenu />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
+            >
+              ⚙️ Settings
+            </button>
+            <AccountMenu />
+          </div>
           <Button onClick={() => setCameraOpen(true)}>Scan an Appliance</Button>
         </div>
       </header>
@@ -118,7 +133,29 @@ export function Dashboard() {
         />
       ) : null}
 
-      <TargetBillSimulator />
+      <section className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/15 dark:bg-white/[0.04]">
+            <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Current bill</p>
+            <p className="mt-1 text-lg font-semibold">{currency.format(profile.currentBillUSD ?? 0)}</p>
+          </div>
+          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/15 dark:bg-white/[0.04]">
+            <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Target bill</p>
+            <p className="mt-1 text-lg font-semibold">{currency.format(profile.targetBillUSD ?? 0)}</p>
+          </div>
+          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/15 dark:bg-white/[0.04]">
+            <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Home profile</p>
+            <p className="mt-1 text-sm text-black/70 dark:text-white/70">
+              {profile.homeSizeSqft} sqft • {profile.homeType} • {profile.applianceAgeYears} yrs old
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-sm text-black/60 dark:text-white/60">
+          These settings help EcoStep recommend upgrades tailored to your home size, home type, and the age of your appliances.
+        </p>
+      </section>
+
+      <TargetBillSimulator profile={profile} />
 
       <section className="rounded-2xl border border-black/10 p-4 dark:border-white/15">
         <h2 className="text-base font-semibold">Step-by-step roadmap</h2>
@@ -215,33 +252,18 @@ export function Dashboard() {
         </div>
       </section>
 
-      {acceptedSuggestions.length > 0 ? (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">Accepted Appliances</h2>
-            <span className="text-xs text-black/50 dark:text-white/50">
-              {acceptedSuggestions.length} accepted
-            </span>
-          </div>
-          <div className="flex flex-col gap-3">
-            {acceptedSuggestions.map((suggestion) => (
-              <SuggestionCard
-                key={suggestion.id}
-                suggestion={suggestion}
-                onReject={rejectSuggestion}
-                onAccept={toggleAccepted}
-                profile={profile}
-                allSuggestions={activeSuggestions}
-                incentiveInsight={incentiveInsightById.get(suggestion.id)}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
       <Modal open={cameraOpen} onClose={() => setCameraOpen(false)} title="Scan an Appliance">
         <CameraView onClose={() => setCameraOpen(false)} />
       </Modal>
+
+      <Settings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        uploadedSuggestions={uploadedSuggestions}
+        acceptedSuggestions={acceptedSuggestions}
+        onRejectSuggestion={rejectSuggestion}
+        onToggleAccepted={toggleAccepted}
+      />
 
       <footer className="pt-2 pb-6 text-center">
         <button
