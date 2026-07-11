@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useAppState } from "@/context/AppStateContext";
-import { calculateEcoScore } from "@/utils/calculations";
+import { calculateEcoScore, calculatePotentialEcoScore } from "@/utils/calculations";
 import { sortSuggestions } from "@/utils/sorting";
 import type { SortMode } from "@/types";
 import { EcoScoreDisplay } from "@/components/dashboard/EcoScoreDisplay";
@@ -30,6 +30,11 @@ export function Dashboard() {
     [profile, activeSuggestions]
   );
 
+  const potentialEcoScore = useMemo(
+    () => (profile ? calculatePotentialEcoScore(profile, activeSuggestions) : null),
+    [profile, activeSuggestions]
+  );
+
   const sorted = useMemo(
     () => sortSuggestions(activeSuggestions, sortMode),
     [activeSuggestions, sortMode]
@@ -49,7 +54,12 @@ export function Dashboard() {
         <Button onClick={() => setCameraOpen(true)}>Scan an Appliance</Button>
       </header>
 
-      {ecoScore ? <EcoScoreDisplay breakdown={ecoScore} /> : null}
+      {ecoScore ? (
+        <EcoScoreDisplay
+          breakdown={ecoScore}
+          potentialScore={potentialEcoScore?.score ?? ecoScore.score}
+        />
+      ) : null}
 
       <TargetBillSimulator />
 

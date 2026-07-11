@@ -5,9 +5,18 @@ const STROKE = 12;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function EcoScoreDisplay({ breakdown }: { breakdown: EcoScoreBreakdown }) {
+function arcOffset(percent: number) {
+  return CIRCUMFERENCE * (1 - percent / 100);
+}
+
+interface EcoScoreDisplayProps {
+  breakdown: EcoScoreBreakdown;
+  potentialScore: number;
+}
+
+export function EcoScoreDisplay({ breakdown, potentialScore }: EcoScoreDisplayProps) {
   const { score, gridBaseline, solarBoost, appliedScore } = breakdown;
-  const offset = CIRCUMFERENCE * (1 - score / 100);
+  const possibleGain = Math.max(0, potentialScore - score);
 
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
@@ -21,6 +30,19 @@ export function EcoScoreDisplay({ breakdown }: { breakdown: EcoScoreBreakdown })
             strokeWidth={STROKE}
             className="stroke-brand-100"
           />
+          {possibleGain > 0 ? (
+            <circle
+              cx={SIZE / 2}
+              cy={SIZE / 2}
+              r={RADIUS}
+              fill="none"
+              strokeWidth={STROKE}
+              strokeDasharray={CIRCUMFERENCE}
+              strokeDashoffset={arcOffset(potentialScore)}
+              strokeLinecap="round"
+              className="stroke-brand-250 transition-[stroke-dashoffset] duration-500"
+            />
+          ) : null}
           <circle
             cx={SIZE / 2}
             cy={SIZE / 2}
@@ -28,7 +50,7 @@ export function EcoScoreDisplay({ breakdown }: { breakdown: EcoScoreBreakdown })
             fill="none"
             strokeWidth={STROKE}
             strokeDasharray={CIRCUMFERENCE}
-            strokeDashoffset={offset}
+            strokeDashoffset={arcOffset(score)}
             strokeLinecap="round"
             className="stroke-brand-600 transition-[stroke-dashoffset] duration-500"
           />
@@ -38,6 +60,11 @@ export function EcoScoreDisplay({ breakdown }: { breakdown: EcoScoreBreakdown })
             {score}
           </span>
           <span className="text-xs text-black/50 dark:text-white/50">EcoScore</span>
+          {possibleGain > 0 ? (
+            <span className="mt-1 text-xs font-medium text-status-good">
+              +{possibleGain} possible
+            </span>
+          ) : null}
         </div>
       </div>
 

@@ -28,6 +28,24 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function computeEcoScoreBreakdown(
+  profile: UserProfile,
+  suggestions: Suggestion[],
+  countSuggestion: (s: Suggestion) => boolean
+): EcoScoreBreakdown {
+  const gridBaseline = getGridBaseline(profile.zipCode).baseline;
+  const solarBoost = profile.hasSolar ? SOLAR_BOOST_POINTS : 0;
+  const appliedScore = clamp(
+    suggestions
+      .filter((s) => !s.rejected && countSuggestion(s))
+      .reduce((sum, s) => sum + (s.conversionEfficiencyPct / 100) * TIER_POINTS[s.tier], 0),
+    0,
+    MAX_APPLIED_POINTS
+  );
+  const score = clamp(gridBaseline + solarBoost + appliedScore, 0, 100);
+  return { score: Math.round(score), gridBaseline, solarBoost, appliedScore };
+}
+
 /**
  * 0-100, three additive components: local grid cleanliness (0-40), a solar
  * ownership bonus (0 or 15), and points for upgrades the user has marked applied
@@ -37,17 +55,20 @@ export function calculateEcoScore(
   profile: UserProfile,
   suggestions: Suggestion[]
 ): EcoScoreBreakdown {
-  const gridBaseline = getGridBaseline(profile.zipCode).baseline;
-  const solarBoost = profile.hasSolar ? SOLAR_BOOST_POINTS : 0;
-  const appliedScore = clamp(
-    suggestions
-      .filter((s) => s.applied && !s.rejected)
-      .reduce((sum, s) => sum + (s.conversionEfficiencyPct / 100) * TIER_POINTS[s.tier], 0),
-    0,
-    MAX_APPLIED_POINTS
-  );
-  const score = clamp(gridBaseline + solarBoost + appliedScore, 0, 100);
-  return { score: Math.round(score), gridBaseline, solarBoost, appliedScore };
+  return computeEcoScoreBreakdown(profile, suggestions, (s) => s.applied);
+}
+
+/**
+ * Same formula, but counts every active (non-rejected) suggestion as if it were
+ * already applied — the score you'd reach by completing everything currently on
+ * your roadmap. Lets newly-added suggestions visibly move something right away,
+ * even before the user checks them off as done.
+ */
+export function calculatePotentialEcoScore(
+  profile: UserProfile,
+  suggestions: Suggestion[]
+): EcoScoreBreakdown {
+  return computeEcoScoreBreakdown(profile, suggestions, () => true);
 }
 
 /**
