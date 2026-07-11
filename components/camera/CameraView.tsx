@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAppState } from "@/context/AppStateContext";
-import { submitAudit, type AuditFailureReason } from "@/lib/api-client";
+import { submitAudit, type AuditError, getErrorExplanation } from "@/lib/api-client";
 import { auditResultToSuggestion } from "@/utils/calculations";
 import { downscaleImage } from "@/utils/image";
 import { Button } from "@/components/ui/Button";
@@ -22,21 +22,6 @@ type Step =
 
 const FAILURE_THRESHOLD = 3;
 
-function failureReasonMessage(reason: AuditFailureReason): string {
-  switch (reason) {
-    case "network":
-      return "Couldn't reach the server. Check your connection and try again.";
-    case "bad_request":
-      return "That photo didn't come through properly. Please retake it.";
-    case "server_misconfigured":
-      return "Scanning isn't configured yet — use manual entry for now.";
-    case "schema_mismatch":
-    case "gemini_error":
-    default:
-      return "We couldn't quite see the text clearly. Please try moving closer or turning on a flashlight.";
-  }
-}
-
 interface CameraViewProps {
   onClose: () => void;
 }
@@ -50,7 +35,8 @@ export function CameraView({ onClose }: CameraViewProps) {
   const [dataPreview, setDataPreview] = useState<string | null>(null);
   const [consecutiveFailures, setConsecutiveFailures] = useState(0);
   const [lastResult, setLastResult] = useState<AuditResult | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastError, setLastError] = useState<AuditError | null>(null);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   const contextInputRef = useRef<HTMLInputElement>(null);
   const dataInputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +84,7 @@ export function CameraView({ onClose }: CameraViewProps) {
   async function analyze() {
     if (!dataBlob) return;
     setStep("submitting");
-    setErrorMessage(null);
+    setLastError(null);
 
     const [downscaledContext, downscaledData] = await Promise.all([
       contextBlob ? downscaleImage(contextBlob) : Promise.resolve(undefined),
@@ -119,9 +105,7 @@ export function CameraView({ onClose }: CameraViewProps) {
 
     const nextFailures = consecutiveFailures + 1;
     setConsecutiveFailures(nextFailures);
-    setErrorMessage(
-      result.ok ? failureReasonMessage("gemini_error") : failureReasonMessage(result.reason)
-    );
+    setLastError(result.ok ? getErrorExplanation("gemini_error") : result.error);
     setStep(nextFailures >= FAILURE_THRESHOLD ? "manual" : "failed");
   }
 
@@ -199,18 +183,47 @@ export function CameraView({ onClose }: CameraViewProps) {
         </div>
       ) : null}
 
-      {step === "failed" ? (
+      {step === "failed" && lastError ? (
         <div className="flex flex-col gap-4">
-          <StatusBadge tone="warning">{errorMessage}</StatusBadge>
-          <p className="text-xs text-black/50 dark:text-white/50">
-            Attempt {consecutiveFailures} of {FAILURE_THRESHOLD}
-          </p>
-          <div className="flex gap-2">
-            <Button onClick={retakeData} className="flex-1">
+          <StatusBadge tone="warning">{lastError.userMessage}</StatusBadge>
+          
+          <div className="rounded-lg bg-status-warning/10 p-4 border border-status-warning/20">
+            <p className="text-sm text-black dark:text-white mb-3">
+              {lastError.suggestion}
+            </p>
+            
+            <button
+              type="button"
+              onClick={() => setShowDebugInfo(!showDebugInfo)}
+              className="text-xs text-black/50 hover:text-black/70 dark:text-white/50 dark:hover:text-white/70 underline"
+            >
+              {showDebugInfo ? "Hide" : "Show"} technical details
+            </button>
+            
+            {showDebugInfo ? (
+              <div className="mt-3 text-xs font-mono bg-black/5 dark:bg-white/5 p-3 rounded text-black/70 dark:text-white/70 overflow-auto max-h-40">
+                <div className="mb-2">
+                  <strong>Error Code:</strong> {lastError.reason}
+                </div>
+                <div className="mb-2">
+                  <strong>Why:</strong> {lastError.technicalDetails}
+                </div>
+                <div>
+                  <strong>Attempt:</strong> {consecutiveFailures} of {FAILURE_THRESHOLD}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Button onClick={retakeData} className="w-full">
               Retake Data Photo
             </Button>
             <Button variant="secondary" onClick={retakeBoth}>
-              Retake Both
+              Retake Both Photos
+            </Button>
+            <Button variant="ghost" onClick={() => setStep("manual")} className="w-full">
+              Use Manual Entry Instead
             </Button>
           </div>
         </div>
