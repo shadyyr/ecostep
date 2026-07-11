@@ -17,6 +17,7 @@ import { CameraView } from "@/components/camera/CameraView";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { AccountMenu } from "@/components/auth/AccountMenu";
+import { Settings } from "@/components/dashboard/Settings";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -29,6 +30,7 @@ export function Dashboard() {
     useAppState();
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   function handleReset() {
     if (window.confirm("Reset EcoStep? This clears your profile and roadmap.")) {
@@ -99,7 +101,15 @@ export function Dashboard() {
           <p className="text-sm text-black/50 dark:text-white/50">Zip {profile.zipCode}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <AccountMenu />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
+            >
+              ⚙️ Settings
+            </button>
+            <AccountMenu />
+          </div>
           <Button onClick={() => setCameraOpen(true)}>Scan an Appliance</Button>
         </div>
       </header>
@@ -181,58 +191,25 @@ export function Dashboard() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Recommended Appliances</h2>
-          <span className="text-xs text-black/50 dark:text-white/50">
-            {sorted.length} to review
-          </span>
-        </div>
-        <SortTabs value={sortMode} onChange={setSortMode} />
-        <div className="flex flex-col gap-3">
-          {sorted.map((suggestion) => (
-            <SuggestionCard
-              key={suggestion.id}
-              suggestion={suggestion}
-              onReject={rejectSuggestion}
-              onAccept={toggleAccepted}
-              profile={profile}
-              allSuggestions={activeSuggestions}
-            />
-          ))}
-          {sorted.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-black/10 p-6 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
-              No appliances to review. Scan an appliance to get started.
-            </p>
-          ) : null}
+        <div>
+          <p className="text-sm text-black/60 dark:text-white/60">
+            View all your uploaded and accepted appliances in Settings.
+          </p>
         </div>
       </section>
-
-      {acceptedSuggestions.length > 0 ? (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">Accepted Appliances</h2>
-            <span className="text-xs text-black/50 dark:text-white/50">
-              {acceptedSuggestions.length} accepted
-            </span>
-          </div>
-          <div className="flex flex-col gap-3">
-            {acceptedSuggestions.map((suggestion) => (
-              <SuggestionCard
-                key={suggestion.id}
-                suggestion={suggestion}
-                onReject={rejectSuggestion}
-                onAccept={toggleAccepted}
-                profile={profile}
-                allSuggestions={activeSuggestions}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       <Modal open={cameraOpen} onClose={() => setCameraOpen(false)} title="Scan an Appliance">
         <CameraView onClose={() => setCameraOpen(false)} />
       </Modal>
+
+      <Settings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        uploadedSuggestions={uploadedSuggestions}
+        acceptedSuggestions={acceptedSuggestions}
+        onRejectSuggestion={rejectSuggestion}
+        onToggleAccepted={toggleAccepted}
+      />
 
       <footer className="pt-2 pb-6 text-center">
         <button

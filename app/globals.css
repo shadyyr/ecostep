@@ -33,10 +33,24 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --background: #0a0f0c;
     --foreground: #ededed;
   }
+}
+
+/* Explicit light theme */
+:root[data-theme="light"] {
+  --background: #f7faf8;
+  --foreground: #171717;
+  color-scheme: light;
+}
+
+/* Explicit dark theme */
+:root[data-theme="dark"] {
+  --background: #0a0f0c;
+  --foreground: #ededed;
+  color-scheme: dark;
 }
 
 body {
