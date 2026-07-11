@@ -28,6 +28,7 @@ type Action =
   | { type: "SET_PROFILE"; payload: UserProfile }
   | { type: "ADD_SUGGESTIONS"; payload: Suggestion[] }
   | { type: "REJECT_SUGGESTION"; payload: { id: string } }
+  | { type: "DELETE_SUGGESTION"; payload: { id: string } }
   | { type: "TOGGLE_ACCEPTED"; payload: { id: string } }
   | { type: "RESET_ALL" };
 
@@ -66,6 +67,14 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
     }
+    case "DELETE_SUGGESTION": {
+      const { id } = action.payload;
+      return {
+        ...state,
+        suggestions: state.suggestions.filter((s) => s.id !== id),
+        rejectedSuggestionIds: state.rejectedSuggestionIds.filter((rejectedId) => rejectedId !== id),
+      };
+    }
     case "TOGGLE_ACCEPTED": {
       const { id } = action.payload;
       return {
@@ -88,6 +97,7 @@ interface AppStateContextValue extends AppState {
   setProfile(profile: UserProfile): void;
   addSuggestions(suggestions: Suggestion[]): void;
   rejectSuggestion(id: string): void;
+  deleteSuggestion(id: string): void;
   toggleAccepted(id: string): void;
   resetAll(): void;
   activeSuggestions: Suggestion[];
@@ -179,6 +189,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       addSuggestions: (suggestions) =>
         dispatch({ type: "ADD_SUGGESTIONS", payload: suggestions }),
       rejectSuggestion: (id) => dispatch({ type: "REJECT_SUGGESTION", payload: { id } }),
+      deleteSuggestion: (id) => dispatch({ type: "DELETE_SUGGESTION", payload: { id } }),
       toggleAccepted: (id) => dispatch({ type: "TOGGLE_ACCEPTED", payload: { id } }),
       resetAll: () => {
         clearState();

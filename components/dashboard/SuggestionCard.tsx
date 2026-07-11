@@ -209,7 +209,7 @@ export function SuggestionCard({
         ) : null}
 
         {insight ? (
-          <div className="rounded-lg border border-black/10 bg-black/[0.02] px-3 py-2 text-sm text-black/70 dark:border-white/10 dark:bg-white/[0.04] dark:text-white/75">
+          <div className="rounded-lg border border-black/25 bg-black/[0.04] px-3 py-2 text-sm text-black/90 dark:border-white/20 dark:bg-white/[0.06] dark:text-white/85">
             {insight}
           </div>
         ) : null}
@@ -367,7 +367,10 @@ export function SuggestionCard({
           <div className="flex flex-col gap-4">
             <div className="rounded-lg border border-status-good/20 bg-status-good/10 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-status-good">
-                {selectedIncentive.type}
+                Savings
+              </p>
+              <p className="mt-1 text-sm font-medium text-black/75 dark:text-white/80">
+                {selectedIncentive.incentiveName}
               </p>
               <p className="mt-1 text-2xl font-semibold text-status-good">
                 {currency.format(selectedIncentive.rebateValueUSD)}
