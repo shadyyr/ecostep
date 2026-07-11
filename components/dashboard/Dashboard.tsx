@@ -14,7 +14,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 
 export function Dashboard() {
-  const { profile, activeSuggestions, rejectSuggestion, toggleApplied, resetAll } =
+  const { profile, activeSuggestions, rejectSuggestion, toggleAccepted, resetAll } =
     useAppState();
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -35,9 +35,19 @@ export function Dashboard() {
     [profile, activeSuggestions]
   );
 
+  const uploadedSuggestions = useMemo(
+    () => activeSuggestions.filter((s) => !s.accepted),
+    [activeSuggestions]
+  );
+
+  const acceptedSuggestions = useMemo(
+    () => activeSuggestions.filter((s) => s.accepted),
+    [activeSuggestions]
+  );
+
   const sorted = useMemo(
-    () => sortSuggestions(activeSuggestions, sortMode),
-    [activeSuggestions, sortMode]
+    () => sortSuggestions(uploadedSuggestions, sortMode),
+    [uploadedSuggestions, sortMode]
   );
 
   if (!profile) return null;
@@ -65,9 +75,9 @@ export function Dashboard() {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Suggestions</h2>
+          <h2 className="text-base font-semibold">Uploaded Appliances</h2>
           <span className="text-xs text-black/50 dark:text-white/50">
-            {sorted.length} active
+            {sorted.length} to review
           </span>
         </div>
         <SortTabs value={sortMode} onChange={setSortMode} />
@@ -77,16 +87,37 @@ export function Dashboard() {
               key={suggestion.id}
               suggestion={suggestion}
               onReject={rejectSuggestion}
-              onToggleApplied={toggleApplied}
+              onAccept={toggleAccepted}
             />
           ))}
           {sorted.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-black/10 p-6 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
-              No active suggestions. Scan an appliance to get started.
+              No appliances to review. Scan an appliance to get started.
             </p>
           ) : null}
         </div>
       </section>
+
+      {acceptedSuggestions.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Accepted Appliances</h2>
+            <span className="text-xs text-black/50 dark:text-white/50">
+              {acceptedSuggestions.length} accepted
+            </span>
+          </div>
+          <div className="flex flex-col gap-3">
+            {acceptedSuggestions.map((suggestion) => (
+              <SuggestionCard
+                key={suggestion.id}
+                suggestion={suggestion}
+                onReject={rejectSuggestion}
+                onAccept={toggleAccepted}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <Modal open={cameraOpen} onClose={() => setCameraOpen(false)} title="Scan an Appliance">
         <CameraView onClose={() => setCameraOpen(false)} />

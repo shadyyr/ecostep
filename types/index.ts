@@ -24,6 +24,7 @@ export interface Suggestion {
   conversionEfficiencyPct: number;
   rejected: boolean;
   applied: boolean;
+  accepted: boolean;
   appliedIncentives: AppliedIncentive[];
   source: "gemini" | "manual" | "mock";
   sourceAuditId?: string;

@@ -151,6 +151,7 @@ export function auditResultToSuggestion(
     conversionEfficiencyPct,
     rejected: false,
     applied: false,
+    accepted: false,
     appliedIncentives: [],
     source,
     sourceAuditId,

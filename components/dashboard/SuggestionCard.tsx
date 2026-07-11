@@ -16,10 +16,10 @@ const currency = new Intl.NumberFormat("en-US", {
 interface SuggestionCardProps {
   suggestion: Suggestion;
   onReject: (id: string) => void;
-  onToggleApplied: (id: string) => void;
+  onAccept: (id: string) => void;
 }
 
-export function SuggestionCard({ suggestion, onReject, onToggleApplied }: SuggestionCardProps) {
+export function SuggestionCard({ suggestion, onReject, onAccept }: SuggestionCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const effectivePrice = getEffectivePrice(suggestion);
   const totalRebate = suggestion.priceUSD - effectivePrice;
@@ -44,15 +44,6 @@ export function SuggestionCard({ suggestion, onReject, onToggleApplied }: Sugges
               </h3>
             </button>
           </div>
-          <label className="flex shrink-0 cursor-pointer flex-col items-center gap-1 text-xs text-black/50 dark:text-white/50">
-            <input
-              type="checkbox"
-              checked={suggestion.applied}
-              onChange={() => onToggleApplied(suggestion.id)}
-              className="h-4 w-4 accent-brand-600"
-            />
-            Done
-          </label>
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm">
@@ -92,7 +83,7 @@ export function SuggestionCard({ suggestion, onReject, onToggleApplied }: Sugges
           <span className="text-xs text-black/40 dark:text-white/40">
             {suggestion.fuelSource} → Electric
           </span>
-          <RejectButton onReject={() => onReject(suggestion.id)} />
+          <RejectButton onReject={() => onReject(suggestion.id)} onAccept={() => onAccept(suggestion.id)} />
         </div>
       </Card>
 
