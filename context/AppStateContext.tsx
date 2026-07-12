@@ -13,7 +13,6 @@ import {
 import type { ParsedUtilityBill, Suggestion, UserProfile } from "@/types";
 import { loadState, saveState, clearState, type PersistedState } from "@/utils/storage";
 import { loadRemoteState, saveRemoteState } from "@/utils/remoteStorage";
-import { buildSeedSuggestions } from "@/data/mockData";
 import { useAuth } from "@/context/AuthContext";
 
 interface AppState {
@@ -51,11 +50,7 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, ...action.payload, status: "ready" };
     }
     case "SET_PROFILE": {
-      const suggestions =
-        state.suggestions.length === 0
-          ? buildSeedSuggestions(action.payload)
-          : state.suggestions;
-      return { ...state, profile: action.payload, suggestions };
+      return { ...state, profile: action.payload };
     }
     case "ADD_SUGGESTIONS": {
       return { ...state, suggestions: [...action.payload, ...state.suggestions] };

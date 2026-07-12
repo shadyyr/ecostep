@@ -574,7 +574,7 @@ export function Dashboard() {
           onClick={handleReset}
           className="text-xs text-black/40 underline underline-offset-2 hover:text-black/60 dark:text-white/40 dark:hover:text-white/60"
         >
-          Reset Demo
+          Reset App
         </button>
       </footer>
     </div>
