@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -44,13 +43,6 @@ export function HeaderActionsMenu({ onOpenSettings }: HeaderActionsMenuProps) {
       {open ? (
         <div className="absolute right-0 top-full z-40 mt-2 w-64 overflow-hidden rounded-xl border border-black/10 bg-white shadow-xl dark:border-white/15 dark:bg-[#101713]">
           <div className="flex flex-col py-1 text-sm">
-            <Link
-              href="/progress"
-              onClick={() => setOpen(false)}
-              className="px-4 py-3 text-left font-medium text-brand-800 hover:bg-brand-100 dark:text-brand-150 dark:hover:bg-white/10"
-            >
-              View Progress
-            </Link>
             <button
               type="button"
               onClick={openSettings}

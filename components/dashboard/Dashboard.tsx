@@ -220,9 +220,15 @@ export function Dashboard() {
           <Button className="hidden sm:inline-flex" onClick={() => setCameraOpen(true)}>
             Scan an Appliance
           </Button>
-          <div className="flex w-full items-center justify-end gap-2 sm:hidden">
-            <Button className="min-w-0 flex-1" onClick={() => setCameraOpen(true)}>
-              Scan an Appliance
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 sm:hidden">
+            <Link
+              href="/progress"
+              className="inline-flex h-11 min-w-0 items-center justify-center rounded-full border border-brand-250 bg-white px-3 text-center text-xs font-medium leading-tight text-brand-900 transition-colors hover:bg-brand-100 dark:border-white/15 dark:bg-white/10 dark:text-brand-100 dark:hover:bg-white/15"
+            >
+              View Progress
+            </Link>
+            <Button className="min-w-0 px-3 text-xs leading-tight" onClick={() => setCameraOpen(true)}>
+              Scan Appliance
             </Button>
             <HeaderActionsMenu onOpenSettings={() => setSettingsOpen(true)} />
           </div>
