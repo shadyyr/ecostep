@@ -201,36 +201,30 @@ export function Dashboard() {
             <p className="text-sm text-black/50 dark:text-white/50">Zip {profile.zipCode}</p>
           </div>
         </div>
-        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:flex-col sm:items-end">
-          <div className="hidden gap-2 sm:flex">
+        <div className="w-full sm:w-auto">
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:w-auto sm:justify-end">
             <Link
               href="/progress"
-              className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
+              className="inline-flex h-11 min-w-0 items-center justify-center rounded-full border border-brand-250 bg-white px-3 text-center text-xs font-medium leading-tight text-brand-900 transition-colors hover:bg-brand-100 dark:border-white/15 dark:bg-white/10 dark:text-brand-100 dark:hover:bg-white/15 sm:h-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:text-brand-700 sm:underline sm:underline-offset-2 sm:hover:bg-transparent sm:hover:text-brand-900 sm:dark:bg-transparent sm:dark:text-brand-250 sm:dark:hover:bg-transparent sm:dark:hover:text-brand-100"
             >
               📈 View Progress
             </Link>
+            <Button className="min-w-0 px-3 text-xs leading-tight sm:px-4 sm:text-sm" onClick={() => setCameraOpen(true)}>
+              <span className="sm:hidden">Scan Appliance</span>
+              <span className="hidden sm:inline">Scan an Appliance</span>
+            </Button>
+            <div className="sm:hidden">
+              <HeaderActionsMenu onOpenSettings={() => setSettingsOpen(true)} />
+            </div>
             <button
               onClick={() => setSettingsOpen(true)}
-              className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
+              className="hidden text-xs font-medium text-brand-700 underline underline-offset-2 hover:text-brand-900 dark:text-brand-250 dark:hover:text-brand-100 sm:inline-flex"
             >
               ⚙️ Settings
             </button>
-            <AccountMenu />
-          </div>
-          <Button className="hidden sm:inline-flex" onClick={() => setCameraOpen(true)}>
-            Scan an Appliance
-          </Button>
-          <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 sm:hidden">
-            <Link
-              href="/progress"
-              className="inline-flex h-11 min-w-0 items-center justify-center rounded-full border border-brand-250 bg-white px-3 text-center text-xs font-medium leading-tight text-brand-900 transition-colors hover:bg-brand-100 dark:border-white/15 dark:bg-white/10 dark:text-brand-100 dark:hover:bg-white/15"
-            >
-              View Progress
-            </Link>
-            <Button className="min-w-0 px-3 text-xs leading-tight" onClick={() => setCameraOpen(true)}>
-              Scan Appliance
-            </Button>
-            <HeaderActionsMenu onOpenSettings={() => setSettingsOpen(true)} />
+            <div className="hidden sm:block">
+              <AccountMenu />
+            </div>
           </div>
         </div>
       </header>
