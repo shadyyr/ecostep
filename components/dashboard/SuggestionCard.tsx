@@ -14,6 +14,7 @@ import { RejectButton } from "@/components/dashboard/RejectButton";
 import { Modal } from "@/components/ui/Modal";
 import { getEffectivePrice } from "@/utils/incentives";
 import { getSuggestionInsight } from "@/utils/calculations";
+import { getHomeSuggestionControl } from "@/utils/homeEligibility";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -96,6 +97,9 @@ export function SuggestionCard({
   const totalRebate = suggestion.priceUSD - effectivePrice;
   const insight = profile ? getSuggestionInsight(suggestion, profile, allSuggestions) : null;
   const incentiveMatches = incentiveInsight?.matches ?? [];
+  const homeControl = profile ? getHomeSuggestionControl(profile, suggestion) : null;
+  const homeControlWarning = homeControl?.status === "in_control" ? null : homeControl;
+  const isLimitedControl = homeControlWarning?.status === "limited_control";
 
   function findIncentiveByName(name: string | null): PopupIncentive | null {
     if (!name) return null;
@@ -131,6 +135,9 @@ export function SuggestionCard({
           <div className="flex-1">
             <div className="mb-1.5 flex items-center gap-2">
               <TierBadge tier={suggestion.tier} />
+              {homeControlWarning ? (
+                <StatusBadge tone="warning">{homeControlWarning.label}</StatusBadge>
+              ) : null}
               {suggestion.source === "manual" ? (
                 <span className="text-xs text-black/40 dark:text-white/40">Manually entered</span>
               ) : null}
@@ -167,6 +174,15 @@ export function SuggestionCard({
         </div>
 
         <Meter value={suggestion.conversionEfficiencyPct} label="Conservation Percentage" />
+
+        {homeControlWarning ? (
+          <div className="rounded-lg border border-status-warning/25 bg-status-warning/10 px-3 py-2 text-sm text-[#6f4700] dark:text-status-warning">
+            <p className="font-semibold">{homeControlWarning.label}</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              {homeControlWarning.reason} {homeControlWarning.actionHint}
+            </p>
+          </div>
+        ) : null}
 
         {affordabilityScenario ? (
           <div className="flex items-center justify-between gap-2 text-xs">
@@ -243,7 +259,16 @@ export function SuggestionCard({
           <span className="text-xs text-black/40 dark:text-white/40">
             {suggestion.fuelSource} → Electric
           </span>
-          <RejectButton onReject={() => onReject(suggestion.id)} onAccept={() => onAccept(suggestion.id)} />
+          <RejectButton
+            onReject={() => onReject(suggestion.id)}
+            onAccept={() => onAccept(suggestion.id)}
+            acceptDisabled={isLimitedControl}
+            acceptTitle={
+              isLimitedControl
+                ? "This needs owner or property-manager control before it can be accepted."
+                : undefined
+            }
+          />
         </div>
       </Card>
       </motion.div>
@@ -255,6 +280,15 @@ export function SuggestionCard({
               {suggestion.description}
             </p>
           </div>
+
+          {homeControlWarning ? (
+            <div className="rounded-lg border border-status-warning/25 bg-status-warning/10 p-4 text-sm text-[#6f4700] dark:text-status-warning">
+              <h4 className="font-semibold">{homeControlWarning.label}</h4>
+              <p className="mt-1 leading-relaxed">
+                {homeControlWarning.reason} {homeControlWarning.actionHint}
+              </p>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
             <div>

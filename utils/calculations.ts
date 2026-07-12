@@ -13,6 +13,7 @@ import {
 } from "@/data/roadmapConfig";
 import { getGridBaseline } from "@/data/gridProfiles";
 import { withAppliedIncentives } from "@/utils/incentives";
+import { getHomeSuggestionControl, isSuggestionPlanEligible } from "@/utils/homeEligibility";
 import { generateId } from "@/utils/id";
 import type {
   AuditResult,
@@ -58,7 +59,11 @@ export function calculateEcoScore(
   profile: UserProfile,
   suggestions: Suggestion[]
 ): EcoScoreBreakdown {
-  return computeEcoScoreBreakdown(profile, suggestions, (s) => s.accepted);
+  return computeEcoScoreBreakdown(
+    profile,
+    suggestions,
+    (s) => s.accepted && isSuggestionPlanEligible(profile, s)
+  );
 }
 
 /**
@@ -71,7 +76,11 @@ export function calculatePotentialEcoScore(
   profile: UserProfile,
   suggestions: Suggestion[]
 ): EcoScoreBreakdown {
-  return computeEcoScoreBreakdown(profile, suggestions, () => true);
+  return computeEcoScoreBreakdown(
+    profile,
+    suggestions,
+    (s) => isSuggestionPlanEligible(profile, s)
+  );
 }
 
 /**
@@ -120,8 +129,13 @@ export function getSuggestionInsight(
   const bundlePartner = getBundlePartner(suggestion, allSuggestions);
   const bundleText = bundlePartner ? ` It also pairs well with ${bundlePartner}.` : "";
   const targetHint = profile.targetBillUSD && profile.targetBillUSD > 0 ? " and helps move you closer to your target bill" : "";
+  const homeControl = getHomeSuggestionControl(profile, suggestion);
+  const homeControlText =
+    homeControl.status === "in_control"
+      ? ""
+      : ` ${homeControl.reason} ${homeControl.actionHint}`;
 
-  return `A ${impactLevel} ${preferenceLabel} fit with ${budgetFit}${targetHint}, delivering strong monthly savings and about ${payback} months to break even.${bundleText}`;
+  return `A ${impactLevel} ${preferenceLabel} fit with ${budgetFit}${targetHint}, delivering strong monthly savings and about ${payback} months to break even.${bundleText}${homeControlText}`;
 }
 
 export function getPersonalizedNextAction(
@@ -130,7 +144,12 @@ export function getPersonalizedNextAction(
   targetBillUSD?: number
 ): Suggestion | null {
   const remainingBudget = profile.maxBudgetUSD > 0 ? profile.maxBudgetUSD : Number.POSITIVE_INFINITY;
-  const active = suggestions.filter((suggestion) => !suggestion.accepted && !suggestion.rejected);
+  const active = suggestions.filter(
+    (suggestion) =>
+      !suggestion.accepted &&
+      !suggestion.rejected &&
+      isSuggestionPlanEligible(profile, suggestion)
+  );
   const targetGap =
     targetBillUSD && targetBillUSD > 0 && profile.currentBillUSD
       ? Math.max(0, profile.currentBillUSD - targetBillUSD)
@@ -158,7 +177,8 @@ export function getPersonalizedNextAction(
 export function simulateTargetBill(
   currentBillUSD: number,
   targetBillUSD: number,
-  activeSuggestions: Suggestion[]
+  activeSuggestions: Suggestion[],
+  profile?: UserProfile | null
 ): TargetBillResult {
   const requiredMonthlySavingsUSD = Math.max(0, currentBillUSD - targetBillUSD);
 
@@ -174,6 +194,7 @@ export function simulateTargetBill(
 
   const candidates = [...activeSuggestions]
     .filter((s) => s.estimatedMonthlySavingsUSD > 0)
+    .filter((s) => !profile || s.accepted || isSuggestionPlanEligible(profile, s))
     .map((suggestion) => {
       const paybackMonths = suggestion.priceUSD / Math.max(1, suggestion.estimatedMonthlySavingsUSD);
       const score =

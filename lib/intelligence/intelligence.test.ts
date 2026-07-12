@@ -138,6 +138,55 @@ describe("home intelligence backend", () => {
     expect(result.warnings.some((warning) => warning.includes("Medical-device"))).toBe(true);
   });
 
+  it("keeps landlord-controlled apartment projects out of backend recommendations", () => {
+    const apartmentProfile: UserProfile = {
+      ...profile,
+      hasSolar: false,
+      homeType: "apartment",
+    };
+    const thermostat = suggestion({
+      id: "s-thermostat",
+      title: "Install smart thermostat",
+      shortName: "Smart Thermostat",
+      category: "thermostat",
+      priceUSD: 130,
+      estimatedMonthlySavingsUSD: 25,
+    });
+    const smartPlug = suggestion({
+      id: "s-smart-plug",
+      title: "Use smart plugs",
+      shortName: "Smart Plug",
+      category: "smart plug",
+      priceUSD: 40,
+      estimatedMonthlySavingsUSD: 8,
+    });
+    const solar = suggestion({
+      id: "s-solar",
+      title: "Add solar panels",
+      shortName: "Solar Panels",
+      category: "solar",
+      priceUSD: 18000,
+    });
+
+    const affordability = simulateAffordability({
+      profile: apartmentProfile,
+      suggestions: [thermostat, smartPlug],
+    });
+    const buyingCircles = planBuyingCircles({
+      profile: apartmentProfile,
+      suggestions: [solar],
+    });
+    const resilience = planOutageResilience({
+      profile: apartmentProfile,
+      suggestions: [solar, suggestion({ id: "s-battery", category: "battery storage" })],
+    });
+
+    expect(affordability.scenarios.map((scenario) => scenario.suggestionId)).toContain("s-thermostat");
+    expect(affordability.recommendedStack.map((scenario) => scenario.suggestionId)).toEqual(["s-smart-plug"]);
+    expect(buyingCircles.circles).toHaveLength(0);
+    expect(resilience.recommendedSuggestionIds).toEqual([]);
+  });
+
   it("orchestrates the full home intelligence payload", () => {
     const result = generateHomeIntelligence({
       profile,

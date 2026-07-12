@@ -1,5 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
+import {
+  generateContentWithFallback,
+  getGeminiErrorStatus,
+  getGeminiErrorText,
+  GeminiModelFallbackError,
+  redactGeminiSensitiveText,
+} from "@/lib/geminiFallback";
 import type { AuditResult } from "@/types";
 
 export const runtime = "nodejs";
@@ -60,6 +67,68 @@ async function fileToInlineData(file: File) {
   return { inlineData: { mimeType: file.type || "image/jpeg", data: buf.toString("base64") } };
 }
 
+function classifyGeminiError(err: unknown): {
+  error: "gemini_error" | "gemini_api_key_invalid" | "gemini_rate_limited" | "timeout";
+  status: number;
+  message: string;
+  details: string;
+  geminiStatus?: number;
+  errorName?: string;
+} {
+  const underlyingError = err instanceof GeminiModelFallbackError ? err.lastError : err;
+  const geminiStatus = getGeminiErrorStatus(underlyingError);
+  const errorName = err instanceof Error ? err.name : undefined;
+  const message = redactGeminiSensitiveText(
+    err instanceof GeminiModelFallbackError ? err.message : getGeminiErrorText(err)
+  );
+  const lower = message.toLowerCase();
+
+  if (geminiStatus === 401 || /api key|credential|unauthenticated/.test(lower)) {
+    return {
+      error: "gemini_api_key_invalid",
+      status: 502,
+      message: "Gemini rejected the API credentials.",
+      details: message,
+      geminiStatus,
+      errorName,
+    };
+  }
+
+  if (geminiStatus === 429 || /quota|rate limit|resource exhausted|too many requests/.test(lower)) {
+    return {
+      error: "gemini_rate_limited",
+      status: 429,
+      message: "Gemini rate limit or quota was hit.",
+      details: message,
+      geminiStatus,
+      errorName,
+    };
+  }
+
+  if (/timeout|timed out|deadline/.test(lower)) {
+    return {
+      error: "timeout",
+      status: 504,
+      message: "Gemini took too long to process the image.",
+      details: message,
+      geminiStatus,
+      errorName,
+    };
+  }
+
+  return {
+    error: "gemini_error",
+    status: 502,
+    message:
+      err instanceof GeminiModelFallbackError
+        ? "Gemini could not process the image after trying fallback models."
+        : "Gemini could not process the image.",
+    details: message,
+    geminiStatus,
+    errorName,
+  };
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "your_gemini_api_key_here") {
@@ -102,10 +171,12 @@ export async function POST(request: Request) {
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      // gemini-2.5-flash was retired for new API keys; gemini-3.5-flash is the
-      // current GA flash model verified to work with this schema+multimodal setup.
-      model: "gemini-3.5-flash",
+    const {
+      response,
+      model,
+      attemptedModels,
+      failedAttempts,
+    } = await generateContentWithFallback(ai, {
       contents: [{ role: "user", parts }],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -116,26 +187,73 @@ export async function POST(request: Request) {
 
     const raw = response.text;
     if (!raw) {
-      return NextResponse.json({ error: "schema_mismatch" }, { status: 502 });
+      return NextResponse.json(
+        {
+          error: "schema_mismatch",
+          message: "Gemini returned an empty response.",
+          details: "The API call completed, but there was no response text to parse as audit JSON.",
+          model,
+          attemptedModels,
+          modelAttempts: failedAttempts,
+        },
+        { status: 502 }
+      );
     }
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
-      return NextResponse.json({ error: "schema_mismatch" }, { status: 502 });
+      return NextResponse.json(
+        {
+          error: "schema_mismatch",
+          message: "Gemini returned non-JSON output.",
+          details: "The audit route requested application/json, but Gemini's response could not be parsed.",
+          model,
+          attemptedModels,
+          modelAttempts: failedAttempts,
+        },
+        { status: 502 }
+      );
     }
 
     if (!isValidAuditResult(parsed)) {
-      return NextResponse.json({ error: "schema_mismatch" }, { status: 502 });
+      return NextResponse.json(
+        {
+          error: "schema_mismatch",
+          message: "Gemini returned JSON in the wrong shape.",
+          details: "Expected a single object with audit fields, but got a different JSON value.",
+          model,
+          attemptedModels,
+          modelAttempts: failedAttempts,
+        },
+        { status: 502 }
+      );
     }
 
     return NextResponse.json(
-      { result: parsed, readable: parsed.confidenceScore >= MIN_CONFIDENCE },
+      { result: parsed, readable: parsed.confidenceScore >= MIN_CONFIDENCE, model, attemptedModels },
       { status: 200 }
     );
   } catch (err) {
     console.error("Gemini audit call failed", err);
-    return NextResponse.json({ error: "gemini_error" }, { status: 502 });
+    const failure = classifyGeminiError(err);
+    const fallbackError = err instanceof GeminiModelFallbackError ? err : null;
+    return NextResponse.json(
+      {
+        error: failure.error,
+        message: failure.message,
+        details: failure.details,
+        geminiStatus: failure.geminiStatus,
+        errorName: failure.errorName,
+        model: fallbackError?.attempts.at(-1)?.model,
+        attemptedModels: fallbackError?.attempts.map((attempt) => attempt.model),
+        modelAttempts: fallbackError?.attempts,
+        fileName: dataImage.name,
+        fileType: dataImage.type || "unknown",
+        fileSizeBytes: dataImage.size,
+      },
+      { status: failure.status }
+    );
   }
 }

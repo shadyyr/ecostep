@@ -193,6 +193,18 @@ export function BillScanView({ onClose }: BillScanViewProps) {
       {step === "form" ? (
         <div className="flex flex-col gap-4">
           {scanError ? <StatusBadge tone="warning">{scanError.userMessage}</StatusBadge> : null}
+          {scanError ? (
+            <div className="rounded-lg border border-status-warning/20 bg-status-warning/10 p-3 text-sm">
+              <p className="font-semibold text-black dark:text-white">Why the scan failed</p>
+              <p className="mt-1 whitespace-pre-wrap text-xs text-black/70 dark:text-white/70">
+                {scanError.technicalDetails}
+              </p>
+              <p className="mt-3 font-semibold text-black dark:text-white">What to try next</p>
+              <p className="mt-1 text-xs text-black/70 dark:text-white/70">
+                {scanError.suggestion}
+              </p>
+            </div>
+          ) : null}
           {!scanError && scanWarnings.length > 0 ? (
             <div className="flex flex-col gap-1.5">
               {scanWarnings.map((warning) => (

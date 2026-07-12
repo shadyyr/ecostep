@@ -18,6 +18,20 @@ export interface AuditError {
   suggestion: string;
 }
 
+interface ApiErrorBody {
+  error?: AuditFailureReason;
+  message?: unknown;
+  details?: unknown;
+  geminiStatus?: unknown;
+  errorName?: unknown;
+  model?: unknown;
+  attemptedModels?: unknown;
+  modelAttempts?: unknown;
+  fileName?: unknown;
+  fileType?: unknown;
+  fileSizeBytes?: unknown;
+}
+
 export type AuditApiResult =
   | { ok: true; result: AuditResult; readable: boolean }
   | { ok: false; error: AuditError };
@@ -95,6 +109,75 @@ export function getErrorExplanation(
   return explanations[reason] || explanations.gemini_error;
 }
 
+function asApiErrorBody(body: unknown): ApiErrorBody {
+  return typeof body === "object" && body !== null ? (body as ApiErrorBody) : {};
+}
+
+function stringField(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function numberField(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function stringArrayField(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function formatModelAttempts(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item !== "object" || item === null) return null;
+      const record = item as Record<string, unknown>;
+      const model = stringField(record.model);
+      const details = stringField(record.details);
+      const status = numberField(record.geminiStatus);
+      if (!model) return null;
+      const suffix = [
+        status !== null ? `status ${status}` : null,
+        details,
+      ].filter(Boolean).join(": ");
+      return suffix ? `${model} (${suffix})` : model;
+    })
+    .filter((item): item is string => item !== null);
+}
+
+function withServerDetails(error: AuditError, body: unknown): AuditError {
+  const apiError = asApiErrorBody(body);
+  const detailLines = [error.technicalDetails];
+  const message = stringField(apiError.message);
+  const details = stringField(apiError.details);
+  const geminiStatus = numberField(apiError.geminiStatus);
+  const errorName = stringField(apiError.errorName);
+  const model = stringField(apiError.model);
+  const attemptedModels = stringArrayField(apiError.attemptedModels);
+  const modelAttempts = formatModelAttempts(apiError.modelAttempts);
+  const fileName = stringField(apiError.fileName);
+  const fileType = stringField(apiError.fileType);
+  const fileSizeBytes = numberField(apiError.fileSizeBytes);
+
+  if (message) detailLines.push(`Server message: ${message}`);
+  if (details && details !== message) detailLines.push(`Gemini detail: ${details}`);
+  if (geminiStatus !== null) detailLines.push(`Gemini status: ${geminiStatus}`);
+  if (errorName) detailLines.push(`Error type: ${errorName}`);
+  if (model) detailLines.push(`Model: ${model}`);
+  if (attemptedModels.length > 0) detailLines.push(`Attempted models: ${attemptedModels.join(", ")}`);
+  if (modelAttempts.length > 0) detailLines.push(`Model attempts: ${modelAttempts.join(" | ")}`);
+  if (fileName || fileType || fileSizeBytes !== null) {
+    detailLines.push(
+      `File: ${fileName ?? "unknown"} (${fileType ?? "unknown"}, ${
+        fileSizeBytes !== null ? `${Math.round(fileSizeBytes / 1024)} KB` : "unknown size"
+      })`
+    );
+  }
+
+  return { ...error, technicalDetails: detailLines.join("\n") };
+}
+
 export async function submitAudit(files: {
   contextImage?: Blob;
   dataImage: Blob;
@@ -106,7 +189,7 @@ export async function submitAudit(files: {
   let response: Response;
   try {
     response = await fetch("/api/audit", { method: "POST", body: formData });
-  } catch (err) {
+  } catch {
     const error = getErrorExplanation("network");
     return { ok: false, error };
   }
@@ -121,7 +204,7 @@ export async function submitAudit(files: {
 
   if (!response.ok) {
     const reason = (body as { error?: AuditFailureReason })?.error ?? "gemini_error";
-    const error = getErrorExplanation(reason);
+    const error = withServerDetails(getErrorExplanation(reason), body);
     return { ok: false, error };
   }
 
@@ -153,7 +236,7 @@ export async function submitUtilityBillScan(file: Blob): Promise<BillScanApiResu
 
   if (!response.ok) {
     const reason = (body as { error?: AuditFailureReason })?.error ?? "gemini_error";
-    return { ok: false, error: getErrorExplanation(reason, "bill") };
+    return { ok: false, error: withServerDetails(getErrorExplanation(reason, "bill"), body) };
   }
 
   const payload = body as { result: ParsedUtilityBill; readable: boolean };

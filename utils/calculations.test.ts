@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   simulateTargetBill,
   calculateEcoScore,
+  calculatePotentialEcoScore,
   auditResultToSuggestion,
+  getPersonalizedNextAction,
   getSuggestionInsight,
 } from '@/utils/calculations';
 import { getMatchingIncentives } from '@/utils/incentives';
@@ -190,5 +192,72 @@ describe('normalize and scoring logic', () => {
     expect(sorted).toHaveLength(2);
     expect(sorted.map((s) => s.id)).toContain('expensive');
     expect(sorted[0].id).toBe('budget');
+  });
+
+  it('keeps apartment-restricted projects visible but out of self-directed planning', () => {
+    const apartmentProfile: UserProfile = {
+      zipCode: '98101',
+      hasSolar: false,
+      preference: 'savings',
+      maxBudgetUSD: 5000,
+      currentBillUSD: 100,
+      targetBillUSD: 70,
+      homeType: 'apartment',
+    };
+    const houseProfile: UserProfile = { ...apartmentProfile, homeType: 'house' };
+    const smartPlug: Suggestion = {
+      id: 'smart-plug',
+      tier: 1,
+      title: 'Use smart plugs',
+      shortName: 'Smart Plug',
+      description: 'Plug load control.',
+      category: 'smart plug',
+      fuelSource: 'Electricity',
+      priceUSD: 40,
+      estimatedMonthlySavingsUSD: 8,
+      conversionEfficiencyPct: 10,
+      rejected: false,
+      accepted: false,
+      appliedIncentives: [],
+      source: 'mock',
+      createdAt: 'now',
+    };
+    const thermostat: Suggestion = {
+      id: 'thermostat',
+      tier: 1,
+      title: 'Install smart thermostat',
+      shortName: 'Smart Thermostat',
+      description: 'Thermostat upgrade.',
+      category: 'thermostat',
+      fuelSource: 'Electricity',
+      priceUSD: 130,
+      estimatedMonthlySavingsUSD: 25,
+      conversionEfficiencyPct: 20,
+      rejected: false,
+      accepted: false,
+      appliedIncentives: [],
+      source: 'mock',
+      createdAt: 'now',
+    };
+    const suggestions = [thermostat, smartPlug];
+
+    const sorted = sortSuggestionsForProfile(suggestions, apartmentProfile, 'maxSavings');
+    const apartmentPotential = calculatePotentialEcoScore(apartmentProfile, suggestions);
+    const housePotential = calculatePotentialEcoScore(houseProfile, suggestions);
+    const apartmentAccepted = calculateEcoScore(apartmentProfile, [
+      { ...thermostat, accepted: true },
+    ]);
+    const targetBill = simulateTargetBill(100, 70, suggestions, apartmentProfile);
+    const nextAction = getPersonalizedNextAction(
+      suggestions,
+      apartmentProfile,
+      apartmentProfile.targetBillUSD
+    );
+
+    expect(sorted.map((s) => s.id)).toEqual(['smart-plug', 'thermostat']);
+    expect(apartmentPotential.appliedScore).toBeLessThan(housePotential.appliedScore);
+    expect(apartmentAccepted.appliedScore).toBe(0);
+    expect(targetBill.stack.map((s) => s.id)).toEqual(['smart-plug']);
+    expect(nextAction?.id).toBe('smart-plug');
   });
 });

@@ -12,6 +12,7 @@ import {
 import { analyzeIncentives } from "@/lib/intelligence/incentiveIntelligence";
 import { simulateAffordability } from "@/lib/intelligence/affordability";
 import { sortSuggestionsForProfile } from "@/utils/sorting";
+import { getHomeSuggestionControl, isSuggestionPlanEligible } from "@/utils/homeEligibility";
 import type { SortMode } from "@/types";
 import { EcoScoreDisplay } from "@/components/dashboard/EcoScoreDisplay";
 import { SortTabs } from "@/components/dashboard/SortTabs";
@@ -25,6 +26,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { AccountMenu } from "@/components/auth/AccountMenu";
 import { Settings } from "@/components/dashboard/Settings";
 import { BrandMark } from "@/components/ui/BrandMark";
+import { HeaderActionsMenu } from "@/components/dashboard/HeaderActionsMenu";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -43,9 +45,9 @@ export function Dashboard() {
     restoreRejectedSuggestions,
     toggleAccepted,
     resetAll,
-    setProfile,
     parsedBill,
     setUtilityBill,
+    setProfile,
   } = useAppState();
   const [sortMode, setSortMode] = useState<SortMode>("recommended");
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -74,6 +76,11 @@ export function Dashboard() {
     [activeSuggestions]
   );
 
+  const counterpartSuggestions = useMemo(
+    () => activeSuggestions.filter((s) => s.source === "mock"),
+    [activeSuggestions]
+  );
+
   const rejectedSuggestions = useMemo(
     () => suggestions.filter((s) => s.rejected),
     [suggestions]
@@ -81,16 +88,6 @@ export function Dashboard() {
 
   const reviewableSuggestions = useMemo(
     () => activeSuggestions.filter((s) => !s.accepted),
-    [activeSuggestions]
-  );
-
-  const acceptedSuggestions = useMemo(
-    () => activeSuggestions.filter((s) => s.accepted),
-    [activeSuggestions]
-  );
-
-  const counterpartSuggestions = useMemo(
-    () => activeSuggestions.filter((s) => s.source === "mock"),
     [activeSuggestions]
   );
 
@@ -102,14 +99,22 @@ export function Dashboard() {
     [reviewableSuggestions, profile, sortMode]
   );
 
+  const roadmapCandidateSuggestions = useMemo(
+    () =>
+      profile
+        ? sorted.filter((suggestion) => isSuggestionPlanEligible(profile, suggestion))
+        : sorted,
+    [sorted, profile]
+  );
+
   const roadmapSteps = useMemo(() => {
-    return sorted.slice(0, 3).map((suggestion, index) => ({
+    return roadmapCandidateSuggestions.slice(0, 3).map((suggestion, index) => ({
       step: index + 1,
       suggestion,
       label: index === 0 ? "Start here" : index === 1 ? "Next step" : "Then",
       kind: suggestion.priceUSD <= 1000 ? "Quick win" : "Bigger investment",
     }));
-  }, [sorted]);
+  }, [roadmapCandidateSuggestions]);
 
   const nextAction = useMemo(
     () => (profile ? getPersonalizedNextAction(activeSuggestions, profile, profile.targetBillUSD) : null),
@@ -150,7 +155,11 @@ export function Dashboard() {
     [affordability]
   );
 
-  const activeRoadmapSuggestions = activeSuggestions.filter((suggestion) => !suggestion.rejected);
+  const activeRoadmapSuggestions = activeSuggestions.filter(
+    (suggestion) => suggestion.accepted || isSuggestionPlanEligible(profile, suggestion)
+  );
+  const acceptedRoadmapSuggestions = activeRoadmapSuggestions.filter((suggestion) => suggestion.accepted);
+  const completedSteps = acceptedRoadmapSuggestions.length;
   const hasOpenRoadmapSuggestions = activeRoadmapSuggestions.some((suggestion) => !suggestion.accepted);
   const maxPotentialReached =
     activeRoadmapSuggestions.length > 0 &&
@@ -159,18 +168,12 @@ export function Dashboard() {
     potentialEcoScore !== null &&
     potentialEcoScore.score <= ecoScore.score;
   const totalPlannedSteps = Math.max(1, activeRoadmapSuggestions.length);
-  const acceptedRoadmapSavings = acceptedSuggestions.reduce(
+  const acceptedRoadmapSavings = acceptedRoadmapSuggestions.reduce(
     (sum, suggestion) => sum + suggestion.estimatedMonthlySavingsUSD,
     0
   );
-  const acceptedRoadmapCost = acceptedSuggestions.reduce(
-    (sum, suggestion) => sum + suggestion.priceUSD,
-    0
-  );
-  const acceptedProgressPercent = Math.min(
-    100,
-    Math.round((acceptedSuggestions.length / Math.max(1, totalPlannedSteps)) * 100)
-  );
+  const acceptedRoadmapCost = acceptedRoadmapSuggestions.reduce((sum, suggestion) => sum + suggestion.priceUSD, 0);
+  const acceptedProgressPercent = Math.min(100, Math.round((completedSteps / totalPlannedSteps) * 100));
   const suggestedRoadmapSavings = roadmapSteps.reduce(
     (sum, step) => sum + step.suggestion.estimatedMonthlySavingsUSD,
     0
@@ -178,14 +181,17 @@ export function Dashboard() {
   const suggestedRoadmapCost = roadmapSteps.reduce((sum, step) => sum + step.suggestion.priceUSD, 0);
   const suggestedProgressPercent = Math.min(
     100,
-    Math.round((roadmapSteps.length / Math.max(1, totalPlannedSteps)) * 100)
+    Math.round((roadmapSteps.length / totalPlannedSteps) * 100)
   );
+  const limitedControlCount = sorted.filter(
+    (suggestion) => getHomeSuggestionControl(profile, suggestion).status === "limited_control"
+  ).length;
 
   if (!profile) return null;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <BrandMark size="md" variant="plain" priority />
           <div className="min-w-0">
@@ -195,8 +201,8 @@ export function Dashboard() {
             <p className="text-sm text-black/50 dark:text-white/50">Zip {profile.zipCode}</p>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex gap-2">
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:flex-col sm:items-end">
+          <div className="hidden gap-2 sm:flex">
             <Link
               href="/progress"
               className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
@@ -211,7 +217,15 @@ export function Dashboard() {
             </button>
             <AccountMenu />
           </div>
-          <Button onClick={() => setCameraOpen(true)}>Scan an Appliance</Button>
+          <Button className="hidden sm:inline-flex" onClick={() => setCameraOpen(true)}>
+            Scan an Appliance
+          </Button>
+          <div className="flex w-full items-center justify-end gap-2 sm:hidden">
+            <Button className="min-w-0 flex-1" onClick={() => setCameraOpen(true)}>
+              Scan an Appliance
+            </Button>
+            <HeaderActionsMenu onOpenSettings={() => setSettingsOpen(true)} />
+          </div>
         </div>
       </header>
 
@@ -330,8 +344,8 @@ export function Dashboard() {
         </p>
 
         {nextAction ? (
-          <div className="mt-3 rounded-xl border border-brand-250/40 bg-brand-100/70 p-3 text-sm text-brand-900 dark:border-brand-250/30 dark:bg-brand-900/35 dark:text-white">
-            <p className="font-semibold text-brand-900 dark:text-brand-100">
+          <div className="mt-3 rounded-xl border border-brand-250/40 bg-brand-100/70 p-3 text-sm text-brand-900 dark:border-brand-250/20 dark:bg-brand-900/35 dark:text-brand-250">
+            <p className="font-semibold">
               Best next action:{" "}
               {nextActionIsVisible && nextActionAnchorId ? (
                 <Link
@@ -354,136 +368,141 @@ export function Dashboard() {
           </div>
         ) : null}
 
-        <div className="mt-4 rounded-2xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.03]">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-brand-900 dark:text-brand-100">Accepted roadmap</h3>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/progress"
-                className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
-              >
-                View Progress
-              </Link>
-              <button
-                type="button"
-                onClick={() => setAcceptedRoadmapOpen((open) => !open)}
-                className="rounded-md border border-black/10 px-2 py-1 text-xs font-medium text-black/70 transition-colors hover:bg-black/5 hover:text-black dark:border-white/15 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
-                aria-expanded={acceptedRoadmapOpen}
-                aria-controls="accepted-roadmap-items"
-              >
-                {acceptedRoadmapOpen ? "Hide accepted" : "View all accepted"}
-              </button>
+        <div className="mt-4 flex flex-col gap-4">
+          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="text-sm font-semibold text-brand-900 dark:text-brand-100">
+                Accepted roadmap
+              </h3>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/progress"
+                  className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
+                >
+                  View Progress
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setAcceptedRoadmapOpen((open) => !open)}
+                  className="rounded-md border border-black/10 px-2 py-1 text-xs font-medium text-black/70 transition-colors hover:bg-black/5 hover:text-black dark:border-white/15 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
+                  aria-expanded={acceptedRoadmapOpen}
+                  aria-controls="accepted-roadmap-items"
+                >
+                  {acceptedRoadmapOpen ? "Hide accepted" : "View all accepted"}
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-              <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Roadmap savings</p>
-              <p className="mt-1 text-lg font-semibold">{currency.format(acceptedRoadmapSavings)}/mo</p>
+
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Roadmap savings</p>
+                <p className="mt-1 text-lg font-semibold">{currency.format(acceptedRoadmapSavings)}/mo</p>
+              </div>
+              <div className="rounded-lg border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Estimated cost</p>
+                <p className="mt-1 text-lg font-semibold">{currency.format(acceptedRoadmapCost)}</p>
+              </div>
+              <div className="rounded-lg border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Progress</p>
+                <p className="mt-1 text-lg font-semibold">{acceptedProgressPercent}%</p>
+              </div>
             </div>
-            <div className="rounded-xl border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-              <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Estimated cost</p>
-              <p className="mt-1 text-lg font-semibold">{currency.format(acceptedRoadmapCost)}</p>
+
+            <div className="mt-3 h-2 rounded-full bg-black/5 dark:bg-white/10">
+              <div className="h-2 rounded-full bg-status-good" style={{ width: `${acceptedProgressPercent}%` }} />
             </div>
-            <div className="rounded-xl border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-              <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Progress</p>
-              <p className="mt-1 text-lg font-semibold">{acceptedProgressPercent}%</p>
+
+            <div id="accepted-roadmap-items" className="mt-3 flex flex-col gap-2">
+              {acceptedRoadmapSuggestions.length > 0 ? (
+                acceptedRoadmapOpen ? (
+                  acceptedRoadmapSuggestions.map((suggestion, index) => (
+                    <div
+                      key={suggestion.id}
+                      className="rounded-lg border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-status-good">
+                            Accepted {index + 1}
+                          </p>
+                          <p className="text-sm font-medium">{suggestion.title}</p>
+                          <p className="text-xs text-black/45 dark:text-white/45">In progress</p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold text-status-good">
+                          +{currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-black/50 dark:text-white/50">
+                    {acceptedRoadmapSuggestions.length} accepted{" "}
+                    {acceptedRoadmapSuggestions.length === 1 ? "appliance" : "appliances"} hidden.
+                  </p>
+                )
+              ) : (
+                <p className="text-sm text-black/50 dark:text-white/50">
+                  No accepted appliances yet. Accept a suggestion to start tracking completed roadmap items.
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="mt-3 h-2 rounded-full bg-black/5 dark:bg-white/10">
-            <div className="h-2 rounded-full bg-status-good" style={{ width: `${acceptedProgressPercent}%` }} />
-          </div>
-          <p className="mt-2 text-xs text-black/50 dark:text-white/50">
-            This shows how much of your overall roadmap has already been accepted.
-          </p>
+          <div className="rounded-xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.04]">
+            <h3 className="text-sm font-semibold text-brand-900 dark:text-brand-100">
+              Suggested roadmap
+            </h3>
 
-          <div id="accepted-roadmap-items" className="mt-3 flex flex-col gap-2">
-            {acceptedSuggestions.length > 0 ? (
-              acceptedRoadmapOpen ? (
-                acceptedSuggestions.map((suggestion, index) => (
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Roadmap savings</p>
+                <p className="mt-1 text-lg font-semibold">{currency.format(suggestedRoadmapSavings)}/mo</p>
+              </div>
+              <div className="rounded-lg border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Estimated cost</p>
+                <p className="mt-1 text-lg font-semibold">{currency.format(suggestedRoadmapCost)}</p>
+              </div>
+              <div className="rounded-lg border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Progress</p>
+                <p className="mt-1 text-lg font-semibold">{suggestedProgressPercent}%</p>
+              </div>
+            </div>
+
+            <div className="mt-3 h-2 rounded-full bg-black/5 dark:bg-white/10">
+              <div className="h-2 rounded-full bg-brand-600" style={{ width: `${suggestedProgressPercent}%` }} />
+            </div>
+
+            <div className="mt-3 flex flex-col gap-2">
+              {roadmapSteps.length > 0 ? (
+                roadmapSteps.map((step) => (
                   <div
-                    key={suggestion.id}
-                    className="rounded-xl border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]"
+                    key={step.suggestion.id}
+                    className="rounded-lg border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-status-good">
-                          Accepted {index + 1}
+                        <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-250">
+                          {step.label}
                         </p>
-                        <p className="text-sm font-medium">{suggestion.title}</p>
-                        <p className="text-xs text-black/45 dark:text-white/45">In progress</p>
+                        <p className="text-sm font-medium">{step.suggestion.title}</p>
+                        <p className="text-xs text-black/45 dark:text-white/45">{step.kind}</p>
                       </div>
                       <span className="shrink-0 text-sm font-semibold text-status-good">
-                        +{currency.format(suggestion.estimatedMonthlySavingsUSD)}/mo
+                        +{currency.format(step.suggestion.estimatedMonthlySavingsUSD)}/mo
                       </span>
                     </div>
                   </div>
                 ))
               ) : (
                 <p className="text-sm text-black/50 dark:text-white/50">
-                  {acceptedSuggestions.length} accepted {acceptedSuggestions.length === 1 ? "appliance" : "appliances"} hidden. Use the view all accepted button to expand.
+                  {maxPotentialReached
+                    ? "Maximum EcoScore reached. Great job being eco-friendly."
+                    : limitedControlCount > 0
+                      ? "The remaining suggestions need owner or property-manager control before they can become roadmap steps."
+                      : "Add a scan or a manual suggestion to unlock your roadmap."}
                 </p>
-              )
-            ) : (
-              <p className="text-sm text-black/50 dark:text-white/50">
-                No accepted appliances yet. Accept a suggestion to start tracking completed roadmap items.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-black/10 bg-black/[0.02] p-4 dark:border-white/10 dark:bg-white/[0.03]">
-          <h3 className="text-sm font-semibold text-brand-900 dark:text-brand-100">Suggested roadmap</h3>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-              <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Roadmap savings</p>
-              <p className="mt-1 text-lg font-semibold">{currency.format(suggestedRoadmapSavings)}/mo</p>
+              )}
             </div>
-            <div className="rounded-xl border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-              <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Estimated cost</p>
-              <p className="mt-1 text-lg font-semibold">{currency.format(suggestedRoadmapCost)}</p>
-            </div>
-            <div className="rounded-xl border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-              <p className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40">Progress</p>
-              <p className="mt-1 text-lg font-semibold">{suggestedProgressPercent}%</p>
-            </div>
-          </div>
-
-          <div className="mt-3 h-2 rounded-full bg-black/5 dark:bg-white/10">
-            <div className="h-2 rounded-full bg-brand-600" style={{ width: `${suggestedProgressPercent}%` }} />
-          </div>
-          <p className="mt-2 text-xs text-black/50 dark:text-white/50">
-            This shows how much of your roadmap is still suggested and waiting for acceptance.
-          </p>
-
-          <div className="mt-3 flex flex-col gap-2">
-            {roadmapSteps.length > 0 ? (
-              roadmapSteps.map((step) => (
-                <div
-                  key={step.suggestion.id}
-                  className="rounded-xl border border-black/10 bg-white/70 p-3 dark:border-white/10 dark:bg-white/[0.04]"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-250">
-                        {step.label}
-                      </p>
-                      <p className="text-sm font-medium">{step.suggestion.title}</p>
-                      <p className="text-xs text-black/45 dark:text-white/45">{step.kind}</p>
-                    </div>
-                    <span className="shrink-0 text-sm font-semibold text-status-good">
-                      +{currency.format(step.suggestion.estimatedMonthlySavingsUSD)}/mo
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-black/50 dark:text-white/50">
-                {maxPotentialReached
-                  ? "Maximum EcoScore reached. Great job being eco-friendly."
-                  : "Add a scan or a manual suggestion to unlock your roadmap."}
-              </p>
-            )}
           </div>
         </div>
       </section>
@@ -496,6 +515,11 @@ export function Dashboard() {
           </span>
         </div>
         <SortTabs value={sortMode} onChange={setSortMode} />
+        {limitedControlCount > 0 ? (
+          <StatusBadge tone="warning">
+            {limitedControlCount} owner-controlled suggestion{limitedControlCount === 1 ? "" : "s"} moved lower for your home type.
+          </StatusBadge>
+        ) : null}
         <div className="flex flex-col gap-3">
           <AnimatePresence initial={false}>
             {sorted.map((suggestion) => (
