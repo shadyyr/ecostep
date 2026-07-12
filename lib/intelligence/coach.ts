@@ -8,6 +8,7 @@ import type {
   UserProfile,
 } from "@/types";
 import { effectivePriceUSD, round } from "@/lib/intelligence/shared";
+import { isSuggestionPlanEligible } from "@/utils/homeEligibility";
 
 export interface CoachInput {
   profile: UserProfile;
@@ -24,8 +25,9 @@ function priorityRank(priority: CoachNudge["priority"]): number {
 export function generateCoach(input: CoachInput): CoachResult {
   const nudges: CoachNudge[] = [];
   const active = input.suggestions.filter((suggestion) => !suggestion.rejected);
-  const open = active.filter((suggestion) => !suggestion.accepted);
-  const accepted = active.filter((suggestion) => suggestion.accepted);
+  const eligibleActive = active.filter((suggestion) => isSuggestionPlanEligible(input.profile, suggestion));
+  const open = eligibleActive.filter((suggestion) => !suggestion.accepted);
+  const accepted = eligibleActive.filter((suggestion) => suggestion.accepted);
 
   if (active.length === 0) {
     nudges.push({
@@ -83,8 +85,8 @@ export function generateCoach(input: CoachInput): CoachResult {
   }
 
   const resilienceMissing =
-    !active.some((suggestion) => suggestion.category === "battery storage" && suggestion.accepted) &&
-    !active.some((suggestion) => suggestion.category === "solar" && suggestion.accepted);
+    !eligibleActive.some((suggestion) => suggestion.category === "battery storage" && suggestion.accepted) &&
+    !eligibleActive.some((suggestion) => suggestion.category === "solar" && suggestion.accepted);
   if (input.profile.hasSolar && resilienceMissing) {
     nudges.push({
       id: "solar-resilience-gap",
@@ -97,7 +99,12 @@ export function generateCoach(input: CoachInput): CoachResult {
   }
 
   const highValueRejected = input.suggestions
-    .filter((suggestion) => suggestion.rejected && effectivePriceUSD(suggestion) <= input.profile.maxBudgetUSD)
+    .filter(
+      (suggestion) =>
+        suggestion.rejected &&
+        isSuggestionPlanEligible(input.profile, suggestion) &&
+        effectivePriceUSD(suggestion) <= input.profile.maxBudgetUSD
+    )
     .sort((a, b) => b.estimatedMonthlySavingsUSD - a.estimatedMonthlySavingsUSD)[0];
   if (highValueRejected) {
     nudges.push({

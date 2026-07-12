@@ -25,6 +25,8 @@ interface ApiErrorBody {
   geminiStatus?: unknown;
   errorName?: unknown;
   model?: unknown;
+  attemptedModels?: unknown;
+  modelAttempts?: unknown;
   fileName?: unknown;
   fileType?: unknown;
   fileSizeBytes?: unknown;
@@ -119,6 +121,31 @@ function numberField(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function stringArrayField(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function formatModelAttempts(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item !== "object" || item === null) return null;
+      const record = item as Record<string, unknown>;
+      const model = stringField(record.model);
+      const details = stringField(record.details);
+      const status = numberField(record.geminiStatus);
+      if (!model) return null;
+      const suffix = [
+        status !== null ? `status ${status}` : null,
+        details,
+      ].filter(Boolean).join(": ");
+      return suffix ? `${model} (${suffix})` : model;
+    })
+    .filter((item): item is string => item !== null);
+}
+
 function withServerDetails(error: AuditError, body: unknown): AuditError {
   const apiError = asApiErrorBody(body);
   const detailLines = [error.technicalDetails];
@@ -127,6 +154,8 @@ function withServerDetails(error: AuditError, body: unknown): AuditError {
   const geminiStatus = numberField(apiError.geminiStatus);
   const errorName = stringField(apiError.errorName);
   const model = stringField(apiError.model);
+  const attemptedModels = stringArrayField(apiError.attemptedModels);
+  const modelAttempts = formatModelAttempts(apiError.modelAttempts);
   const fileName = stringField(apiError.fileName);
   const fileType = stringField(apiError.fileType);
   const fileSizeBytes = numberField(apiError.fileSizeBytes);
@@ -136,6 +165,8 @@ function withServerDetails(error: AuditError, body: unknown): AuditError {
   if (geminiStatus !== null) detailLines.push(`Gemini status: ${geminiStatus}`);
   if (errorName) detailLines.push(`Error type: ${errorName}`);
   if (model) detailLines.push(`Model: ${model}`);
+  if (attemptedModels.length > 0) detailLines.push(`Attempted models: ${attemptedModels.join(", ")}`);
+  if (modelAttempts.length > 0) detailLines.push(`Model attempts: ${modelAttempts.join(" | ")}`);
   if (fileName || fileType || fileSizeBytes !== null) {
     detailLines.push(
       `File: ${fileName ?? "unknown"} (${fileType ?? "unknown"}, ${

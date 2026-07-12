@@ -1,5 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
+import {
+  generateContentWithFallback,
+  getGeminiErrorStatus,
+  getGeminiErrorText,
+  GeminiModelFallbackError,
+  redactGeminiSensitiveText,
+} from "@/lib/geminiFallback";
 import { parseUtilityBill } from "@/lib/intelligence/utilityBill";
 import type { ParsedUtilityBill, UtilityBillParseInput } from "@/types";
 
@@ -27,40 +34,10 @@ const BILL_SCHEMA = {
 
 const MIN_CONFIDENCE = 0.35;
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
-const GEMINI_MODEL = "gemini-3.5-flash";
 
 async function fileToInlineData(file: File) {
   const buf = Buffer.from(await file.arrayBuffer());
   return { inlineData: { mimeType: file.type || "image/jpeg", data: buf.toString("base64") } };
-}
-
-function getErrorValue(err: unknown, key: string): unknown {
-  return typeof err === "object" && err !== null ? (err as Record<string, unknown>)[key] : undefined;
-}
-
-function getErrorText(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  const message = getErrorValue(err, "message");
-  if (typeof message === "string") return message;
-  if (typeof err === "string") return err;
-  return "Gemini returned an unknown error.";
-}
-
-function getErrorStatus(err: unknown): number | undefined {
-  const status = getErrorValue(err, "status") ?? getErrorValue(err, "code");
-  if (typeof status === "number") return status;
-  if (typeof status === "string") {
-    const parsed = Number(status);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-  return undefined;
-}
-
-function redactSensitive(text: string): string {
-  return text
-    .replace(/AIza[0-9A-Za-z_-]{20,}/g, "[redacted_gemini_api_key]")
-    .replace(/key=([^&\s]+)/gi, "key=[redacted]")
-    .slice(0, 900);
 }
 
 function classifyGeminiError(err: unknown): {
@@ -71,12 +48,15 @@ function classifyGeminiError(err: unknown): {
   geminiStatus?: number;
   errorName?: string;
 } {
-  const geminiStatus = getErrorStatus(err);
+  const underlyingError = err instanceof GeminiModelFallbackError ? err.lastError : err;
+  const geminiStatus = getGeminiErrorStatus(underlyingError);
   const errorName = err instanceof Error ? err.name : undefined;
-  const message = redactSensitive(getErrorText(err));
+  const message = redactGeminiSensitiveText(
+    err instanceof GeminiModelFallbackError ? err.message : getGeminiErrorText(err)
+  );
   const lower = message.toLowerCase();
 
-  if (geminiStatus === 401 || geminiStatus === 403 || /api key|permission|unauthenticated|forbidden/.test(lower)) {
+  if (geminiStatus === 401 || /api key|credential|unauthenticated/.test(lower)) {
     return {
       error: "gemini_api_key_invalid",
       status: 502,
@@ -112,7 +92,10 @@ function classifyGeminiError(err: unknown): {
   return {
     error: "gemini_error",
     status: 502,
-    message: "Gemini could not process the bill file.",
+    message:
+      err instanceof GeminiModelFallbackError
+        ? "Gemini could not process the bill file after trying fallback models."
+        : "Gemini could not process the bill file.",
     details: message,
     geminiStatus,
     errorName,
@@ -161,8 +144,12 @@ export async function POST(request: Request) {
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
+    const {
+      response,
+      model,
+      attemptedModels,
+      failedAttempts,
+    } = await generateContentWithFallback(ai, {
       contents: [{ role: "user", parts }],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -178,7 +165,9 @@ export async function POST(request: Request) {
           error: "schema_mismatch",
           message: "Gemini returned an empty response.",
           details: "The API call completed, but there was no response text to parse as bill JSON.",
-          model: GEMINI_MODEL,
+          model,
+          attemptedModels,
+          modelAttempts: failedAttempts,
         },
         { status: 502 }
       );
@@ -193,7 +182,9 @@ export async function POST(request: Request) {
           error: "schema_mismatch",
           message: "Gemini returned non-JSON output.",
           details: "The bill scan route requested application/json, but Gemini's response could not be parsed.",
-          model: GEMINI_MODEL,
+          model,
+          attemptedModels,
+          modelAttempts: failedAttempts,
         },
         { status: 502 }
       );
@@ -205,7 +196,9 @@ export async function POST(request: Request) {
           error: "schema_mismatch",
           message: "Gemini returned JSON in the wrong shape.",
           details: "Expected a single object with utility bill fields, but got a different JSON value.",
-          model: GEMINI_MODEL,
+          model,
+          attemptedModels,
+          modelAttempts: failedAttempts,
         },
         { status: 502 }
       );
@@ -214,12 +207,18 @@ export async function POST(request: Request) {
     const result: ParsedUtilityBill = parseUtilityBill(extracted as UtilityBillParseInput);
 
     return NextResponse.json(
-      { result, readable: result.confidenceScore >= MIN_CONFIDENCE && result.totalDueUSD !== null },
+      {
+        result,
+        readable: result.confidenceScore >= MIN_CONFIDENCE && result.totalDueUSD !== null,
+        model,
+        attemptedModels,
+      },
       { status: 200 }
     );
   } catch (err) {
     console.error("Gemini utility bill scan failed", err);
     const failure = classifyGeminiError(err);
+    const fallbackError = err instanceof GeminiModelFallbackError ? err : null;
     return NextResponse.json(
       {
         error: failure.error,
@@ -227,7 +226,9 @@ export async function POST(request: Request) {
         details: failure.details,
         geminiStatus: failure.geminiStatus,
         errorName: failure.errorName,
-        model: GEMINI_MODEL,
+        model: fallbackError?.attempts.at(-1)?.model,
+        attemptedModels: fallbackError?.attempts.map((attempt) => attempt.model),
+        modelAttempts: fallbackError?.attempts,
         fileName: billFile.name,
         fileType: billFile.type || "unknown",
         fileSizeBytes: billFile.size,

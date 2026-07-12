@@ -1,5 +1,6 @@
 import type { CriticalLoadInput, ResiliencePlan, Suggestion, UserProfile } from "@/types";
 import { clamp, round } from "@/lib/intelligence/shared";
+import { isSuggestionPlanEligible } from "@/utils/homeEligibility";
 
 export interface ResilienceInput {
   profile: UserProfile;
@@ -25,13 +26,22 @@ function normalizeLoads(input: ResilienceInput): CriticalLoadInput[] {
   return [...loads, ...extra].filter((load) => load.watts > 0);
 }
 
-function hasAcceptedCategory(suggestions: Suggestion[], category: string): boolean {
-  return suggestions.some((suggestion) => suggestion.accepted && suggestion.category === category);
+function hasAcceptedCategory(profile: UserProfile, suggestions: Suggestion[], category: string): boolean {
+  return suggestions.some(
+    (suggestion) =>
+      suggestion.accepted &&
+      suggestion.category === category &&
+      isSuggestionPlanEligible(profile, suggestion)
+  );
 }
 
-function matchingSuggestionIds(suggestions: Suggestion[], categories: string[]): string[] {
+function matchingSuggestionIds(profile: UserProfile, suggestions: Suggestion[], categories: string[]): string[] {
   return suggestions
-    .filter((suggestion) => categories.includes(suggestion.category))
+    .filter(
+      (suggestion) =>
+        categories.includes(suggestion.category) &&
+        isSuggestionPlanEligible(profile, suggestion)
+    )
     .map((suggestion) => suggestion.id);
 }
 
@@ -46,15 +56,15 @@ export function planOutageResilience(input: ResilienceInput): ResiliencePlan {
     .reduce((sum, load) => sum + load.watts * 0.5, 0);
   const criticalLoadWatts = Math.round(requiredLoadWatts + optionalLoadWatts);
   const storageKWhRequired = round((criticalLoadWatts * outageHoursTarget * 1.25) / 1000, 1);
-  const hasBattery = hasAcceptedCategory(input.suggestions, "battery storage");
-  const hasSolar = input.profile.hasSolar || hasAcceptedCategory(input.suggestions, "solar");
-  const hasPanel = hasAcceptedCategory(input.suggestions, "electrical panel");
+  const hasBattery = hasAcceptedCategory(input.profile, input.suggestions, "battery storage");
+  const hasSolar = input.profile.hasSolar || hasAcceptedCategory(input.profile, input.suggestions, "solar");
+  const hasPanel = hasAcceptedCategory(input.profile, input.suggestions, "electrical panel");
   const installedStorageKWh = hasBattery ? 10 : 0;
   const solarExtension = hasSolar ? 1.35 : 1;
   const backupHoursEstimate =
     criticalLoadWatts > 0 ? round(((installedStorageKWh * 1000) / criticalLoadWatts) * solarExtension, 1) : 0;
   const solarKWRecommended = hasSolar ? 0 : round(Math.max(2, storageKWhRequired / 5), 1);
-  const recommendedSuggestionIds = matchingSuggestionIds(input.suggestions, [
+  const recommendedSuggestionIds = matchingSuggestionIds(input.profile, input.suggestions, [
     "battery storage",
     "solar",
     "electrical panel",

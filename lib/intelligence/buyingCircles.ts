@@ -1,5 +1,6 @@
 import type { BuyingCircle, BuyingCirclesResult, Suggestion, UserProfile } from "@/types";
 import { effectivePriceUSD, round, stableHash, sumBy, zipPrefix } from "@/lib/intelligence/shared";
+import { isSuggestionPlanEligible } from "@/utils/homeEligibility";
 
 export interface BuyingCirclesInput {
   profile: UserProfile;
@@ -43,7 +44,12 @@ function readiness(participants: number, threshold: number): BuyingCircle["contr
 export function planBuyingCircles(input: BuyingCirclesInput): BuyingCirclesResult {
   const threshold = Math.max(3, input.minimumHomesForQuote ?? 6);
   const prefix = zipPrefix(input.profile.zipCode);
-  const openSuggestions = input.suggestions.filter((suggestion) => !suggestion.rejected && !suggestion.accepted);
+  const openSuggestions = input.suggestions.filter(
+    (suggestion) =>
+      !suggestion.rejected &&
+      !suggestion.accepted &&
+      isSuggestionPlanEligible(input.profile, suggestion)
+  );
   const grouped = new Map<string, Suggestion[]>();
 
   for (const suggestion of openSuggestions) {

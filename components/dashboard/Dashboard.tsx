@@ -12,6 +12,7 @@ import {
 import { analyzeIncentives } from "@/lib/intelligence/incentiveIntelligence";
 import { simulateAffordability } from "@/lib/intelligence/affordability";
 import { sortSuggestionsForProfile } from "@/utils/sorting";
+import { getHomeSuggestionControl, isSuggestionPlanEligible } from "@/utils/homeEligibility";
 import type { SortMode } from "@/types";
 import { EcoScoreDisplay } from "@/components/dashboard/EcoScoreDisplay";
 import { SortTabs } from "@/components/dashboard/SortTabs";
@@ -25,6 +26,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { AccountMenu } from "@/components/auth/AccountMenu";
 import { Settings } from "@/components/dashboard/Settings";
 import { BrandMark } from "@/components/ui/BrandMark";
+import { HeaderActionsMenu } from "@/components/dashboard/HeaderActionsMenu";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -90,14 +92,22 @@ export function Dashboard() {
     [reviewableSuggestions, profile, sortMode]
   );
 
+  const roadmapCandidateSuggestions = useMemo(
+    () =>
+      profile
+        ? sorted.filter((suggestion) => isSuggestionPlanEligible(profile, suggestion))
+        : sorted,
+    [sorted, profile]
+  );
+
   const roadmapSteps = useMemo(() => {
-    return sorted.slice(0, 3).map((suggestion, index) => ({
+    return roadmapCandidateSuggestions.slice(0, 3).map((suggestion, index) => ({
       step: index + 1,
       suggestion,
       label: index === 0 ? "Start here" : index === 1 ? "Next step" : "Then",
       kind: suggestion.priceUSD <= 1000 ? "Quick win" : "Bigger investment",
     }));
-  }, [sorted]);
+  }, [roadmapCandidateSuggestions]);
 
   const nextAction = useMemo(
     () => (profile ? getPersonalizedNextAction(activeSuggestions, profile, profile.targetBillUSD) : null),
@@ -138,8 +148,10 @@ export function Dashboard() {
     [affordability]
   );
 
-  const completedSteps = activeSuggestions.filter((suggestion) => suggestion.accepted).length;
-  const activeRoadmapSuggestions = activeSuggestions.filter((suggestion) => !suggestion.rejected);
+  const activeRoadmapSuggestions = activeSuggestions.filter(
+    (suggestion) => suggestion.accepted || isSuggestionPlanEligible(profile, suggestion)
+  );
+  const completedSteps = activeRoadmapSuggestions.filter((suggestion) => suggestion.accepted).length;
   const hasOpenRoadmapSuggestions = activeRoadmapSuggestions.some((suggestion) => !suggestion.accepted);
   const maxPotentialReached =
     activeRoadmapSuggestions.length > 0 &&
@@ -154,12 +166,15 @@ export function Dashboard() {
   );
   const roadmapCost = roadmapSteps.reduce((sum, step) => sum + step.suggestion.priceUSD, 0);
   const progressPercent = Math.min(100, Math.round((completedSteps / Math.max(1, totalPlannedSteps)) * 100));
+  const limitedControlCount = sorted.filter(
+    (suggestion) => getHomeSuggestionControl(profile, suggestion).status === "limited_control"
+  ).length;
 
   if (!profile) return null;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <BrandMark size="md" variant="plain" priority />
           <div className="min-w-0">
@@ -169,8 +184,8 @@ export function Dashboard() {
             <p className="text-sm text-black/50 dark:text-white/50">Zip {profile.zipCode}</p>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex gap-2">
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:flex-col sm:items-end">
+          <div className="hidden gap-2 sm:flex">
             <Link
               href="/progress"
               className="text-xs font-medium text-brand-700 underline underline-offset-2 dark:text-brand-250 hover:text-brand-900 dark:hover:text-brand-100"
@@ -185,7 +200,15 @@ export function Dashboard() {
             </button>
             <AccountMenu />
           </div>
-          <Button onClick={() => setCameraOpen(true)}>Scan an Appliance</Button>
+          <Button className="hidden sm:inline-flex" onClick={() => setCameraOpen(true)}>
+            Scan an Appliance
+          </Button>
+          <div className="flex w-full items-center justify-end gap-2 sm:hidden">
+            <Button className="min-w-0 flex-1" onClick={() => setCameraOpen(true)}>
+              Scan an Appliance
+            </Button>
+            <HeaderActionsMenu onOpenSettings={() => setSettingsOpen(true)} />
+          </div>
         </div>
       </header>
 
@@ -376,7 +399,9 @@ export function Dashboard() {
             <p className="text-sm text-black/50 dark:text-white/50">
               {maxPotentialReached
                 ? "Maximum EcoScore reached. Great job being eco-friendly."
-                : "Add a scan or a manual suggestion to unlock your roadmap."}
+                : limitedControlCount > 0
+                  ? "The remaining suggestions need owner or property-manager control before they can become roadmap steps."
+                  : "Add a scan or a manual suggestion to unlock your roadmap."}
             </p>
           )}
         </div>
@@ -390,6 +415,11 @@ export function Dashboard() {
           </span>
         </div>
         <SortTabs value={sortMode} onChange={setSortMode} />
+        {limitedControlCount > 0 ? (
+          <StatusBadge tone="warning">
+            {limitedControlCount} owner-controlled suggestion{limitedControlCount === 1 ? "" : "s"} moved lower for your home type.
+          </StatusBadge>
+        ) : null}
         <div className="flex flex-col gap-3">
           <AnimatePresence initial={false}>
             {sorted.map((suggestion) => (

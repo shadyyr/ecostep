@@ -1,5 +1,6 @@
 import type { RecommendationPreference, SortMode, Suggestion, Tier, UserProfile } from "@/types";
 import { getEffectivePrice } from "@/utils/incentives";
+import { getHomeSuggestionControl } from "@/utils/homeEligibility";
 
 export type SortFn = (suggestions: Suggestion[]) => Suggestion[];
 
@@ -41,7 +42,7 @@ function recommendedScore(
   const confidenceBoost = confidence >= 0.85 ? 1.08 : confidence >= 0.65 ? 1 : 0.9;
   const sizeMultiplier = profile.homeSizeSqft ? Math.min(1.2, 0.85 + profile.homeSizeSqft / 1600) : 1;
   const ageMultiplier = profile.applianceAgeYears ? Math.min(1.18, 0.95 + profile.applianceAgeYears / 30) : 1;
-  const homeTypePenalty = profile.homeType === "apartment" ? 0.92 : profile.homeType === "townhouse" ? 0.97 : 1;
+  const homeControl = getHomeSuggestionControl(profile, suggestion);
 
   return (
     ((roi * speedWeight + efficiency * impactWeight + (annualSavings / 1000) * savingsWeight) *
@@ -53,7 +54,7 @@ function recommendedScore(
       confidenceBoost *
       sizeMultiplier *
       ageMultiplier *
-      homeTypePenalty
+      homeControl.scoreMultiplier
   );
 }
 
@@ -102,16 +103,30 @@ export function sortSuggestions(list: Suggestion[], mode: SortMode): Suggestion[
   return SORTERS[mode](list);
 }
 
+function prioritizeHomeControl(list: Suggestion[], profile: UserProfile): Suggestion[] {
+  return list
+    .map((suggestion, index) => ({
+      suggestion,
+      index,
+      homeControl: getHomeSuggestionControl(profile, suggestion),
+    }))
+    .sort((a, b) => a.homeControl.sortRank - b.homeControl.sortRank || a.index - b.index)
+    .map(({ suggestion }) => suggestion);
+}
+
 export function sortSuggestionsForProfile(
   list: Suggestion[],
   profile: UserProfile,
   mode: SortMode = "recommended",
   targetBillUSD?: number
 ): Suggestion[] {
-  if (mode !== "recommended") return sortSuggestions(list, mode);
-  return [...list]
-    .sort((a, b) =>
-      recommendedScore(b, profile.preference, profile, list, targetBillUSD) -
-      recommendedScore(a, profile.preference, profile, list, targetBillUSD)
-    );
+  const sorted =
+    mode !== "recommended"
+      ? sortSuggestions(list, mode)
+      : [...list].sort(
+          (a, b) =>
+            recommendedScore(b, profile.preference, profile, list, targetBillUSD) -
+            recommendedScore(a, profile.preference, profile, list, targetBillUSD)
+        );
+  return prioritizeHomeControl(sorted, profile);
 }

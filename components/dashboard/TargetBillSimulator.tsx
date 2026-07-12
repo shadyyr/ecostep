@@ -41,9 +41,10 @@ export function TargetBillSimulator({ profile }: TargetBillSimulatorProps) {
       simulateTargetBill(
         Number(currentBill) || 0,
         Number(targetBill) || 0,
-        activeSuggestions.filter((s) => !s.accepted)
+        activeSuggestions.filter((s) => !s.accepted),
+        profile
       ),
-    [currentBill, targetBill, activeSuggestions]
+    [currentBill, targetBill, activeSuggestions, profile]
   );
 
   return (
@@ -104,7 +105,7 @@ export function TargetBillSimulator({ profile }: TargetBillSimulatorProps) {
             ))}
             {result.stack.length === 0 ? (
               <li className="text-black/50 dark:text-white/50">
-                No available suggestions yet — scan an appliance or add one manually.
+                No available suggestions within your control yet — scan an appliance or add one manually.
               </li>
             ) : null}
           </ol>

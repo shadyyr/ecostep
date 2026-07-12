@@ -6,6 +6,7 @@ import type {
   UserProfile,
 } from "@/types";
 import { clamp, effectivePriceUSD, round, sumBy } from "@/lib/intelligence/shared";
+import { isSuggestionPlanEligible } from "@/utils/homeEligibility";
 
 export interface AffordabilityInput {
   profile: UserProfile;
@@ -118,6 +119,10 @@ export function simulateAffordability(input: AffordabilityInput): AffordabilityR
   });
 
   const recommendedStack = [...scenarios]
+    .filter((scenario) => {
+      const suggestion = input.suggestions.find((item) => item.id === scenario.suggestionId);
+      return suggestion ? isSuggestionPlanEligible(input.profile, suggestion) : true;
+    })
     .filter((scenario) => scenario.monthlyPaymentUSD <= monthlyCashAvailableUSD || scenario.monthlyNetImpactUSD >= 0)
     .sort((a, b) => b.affordabilityScore - a.affordabilityScore)
     .slice(0, 3);
